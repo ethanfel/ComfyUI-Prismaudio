@@ -44,8 +44,7 @@
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "video", "type": "IMAGE", "link": 1},
-        {"name": "caption_cot", "type": "STRING", "link": null, "widget": {"name": "caption_cot"}}
+        {"name": "video", "type": "IMAGE", "link": 1}
       ],
       "outputs": [
         {"name": "features", "type": "PRISMAUDIO_FEATURES", "links": [4], "slot_index": 0}

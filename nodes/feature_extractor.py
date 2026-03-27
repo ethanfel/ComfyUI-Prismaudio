@@ -23,14 +23,20 @@ _EXTRACT_PACKAGES = [
 ]
 
 
-def _pip_run(pip, *args):
-    """Run pip and stream output; raise with visible error on failure."""
-    result = subprocess.run([pip] + list(args), capture_output=False)
+def _pip_install(pip, *packages, label=None):
+    """Install one or more packages with visible output; raise on failure."""
+    tag = label or packages[0]
+    print(f"[PrismAudio]   installing {tag} ...", flush=True)
+    result = subprocess.run(
+        [pip, "install", "--progress-bar", "on"] + list(packages),
+        capture_output=False,
+    )
     if result.returncode != 0:
         raise RuntimeError(
-            f"[PrismAudio] pip {' '.join(args[:2])} failed (exit {result.returncode}). "
-            "Check the output above for details."
+            f"[PrismAudio] Failed to install {tag} (exit {result.returncode}). "
+            "See pip output above for details."
         )
+    print(f"[PrismAudio]   {tag} OK", flush=True)
 
 
 def _ensure_extract_env():
@@ -40,19 +46,26 @@ def _ensure_extract_env():
 
     import shutil
     if os.path.exists(_MANAGED_VENV):
-        print("[PrismAudio] Removing incomplete venv and retrying...")
+        print("[PrismAudio] Removing incomplete venv and retrying...", flush=True)
         shutil.rmtree(_MANAGED_VENV)
 
-    print("[PrismAudio] Feature-extraction env not found — creating venv at:", _MANAGED_VENV)
+    print(f"[PrismAudio] Creating feature-extraction venv at: {_MANAGED_VENV}", flush=True)
     subprocess.run([sys.executable, "-m", "venv", _MANAGED_VENV], check=True)
 
     pip = os.path.join(_MANAGED_VENV, "bin", "pip")
-    _pip_run(pip, "install", "--upgrade", "pip")
 
-    print("[PrismAudio] Installing feature-extraction dependencies (this takes a few minutes)...")
-    _pip_run(pip, "install", *_EXTRACT_PACKAGES)
+    print("[PrismAudio] Upgrading pip...", flush=True)
+    subprocess.run([pip, "install", "--upgrade", "pip"], check=True)
 
-    print("[PrismAudio] Feature-extraction env ready.")
+    total = len(_EXTRACT_PACKAGES)
+    print(f"[PrismAudio] Installing {total} package groups — this may take several minutes...", flush=True)
+
+    for i, pkg in enumerate(_EXTRACT_PACKAGES, 1):
+        label = pkg.split("/")[-1] if pkg.startswith("git+") else pkg.split(">=")[0].split("==")[0].split("[")[0]
+        print(f"[PrismAudio] [{i}/{total}] {label}", flush=True)
+        _pip_install(pip, pkg, label=label)
+
+    print("[PrismAudio] Feature-extraction env ready.", flush=True)
     return _MANAGED_PYTHON
 
 

@@ -124,6 +124,7 @@ class PrismAudioFeatureExtractor:
                 "python_env": ("STRING", {"default": "python", "tooltip": "Path to python binary with JAX/TF. Leave as 'python' to auto-install a managed venv on first use."}),
                 "cache_dir": ("STRING", {"default": "", "tooltip": "Directory to cache extracted features. Empty = temp dir"}),
                 "synchformer_ckpt": ("STRING", {"default": "", "tooltip": "Path to synchformer checkpoint (auto-resolved if empty)"}),
+                "hf_token": ("STRING", {"default": "", "tooltip": "HuggingFace token for gated models (e.g. google/t5gemma). Get yours at huggingface.co/settings/tokens"}),
             },
         }
 
@@ -132,7 +133,7 @@ class PrismAudioFeatureExtractor:
     FUNCTION = "extract_features"
     CATEGORY = PRISMAUDIO_CATEGORY
 
-    def extract_features(self, video, caption_cot, fps=30.0, python_env="python", cache_dir="", synchformer_ckpt=""):
+    def extract_features(self, video, caption_cot, fps=30.0, python_env="python", cache_dir="", synchformer_ckpt="", hf_token=""):
         # Resolve python binary — auto-install managed venv if empty or default
         if not python_env.strip() or python_env.strip() == "python":
             python_env = _ensure_extract_env()
@@ -171,6 +172,17 @@ class PrismAudioFeatureExtractor:
         if synchformer_ckpt:
             cmd.extend(["--synchformer_ckpt", synchformer_ckpt])
 
+        # Build env: inherit current env, inject HF token if provided
+        import copy
+        env = copy.copy(os.environ)
+        token = hf_token.strip() if hf_token else os.environ.get("HF_TOKEN", "")
+        if token:
+            env["HF_TOKEN"] = token
+            env["HUGGING_FACE_HUB_TOKEN"] = token
+        else:
+            print("[PrismAudio] Warning: no HF_TOKEN set — gated models (e.g. t5gemma) will fail. "
+                  "Add your token in the hf_token input or set HF_TOKEN env var.", flush=True)
+
         print(f"[PrismAudio] Extracting features via subprocess (output streams live)...")
         try:
             # capture_output=False: let stdout/stderr stream directly to ComfyUI logs
@@ -178,6 +190,7 @@ class PrismAudioFeatureExtractor:
                 cmd,
                 capture_output=False,
                 timeout=600,  # 10 minute timeout
+                env=env,
             )
             if result.returncode != 0:
                 raise RuntimeError(

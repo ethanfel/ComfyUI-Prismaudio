@@ -304,8 +304,7 @@ class AudioAutoencoder(nn.Module):
     def encode(self, audio, return_info=False, skip_pretransform=False, iterate_batch=False, **kwargs):
 
         info = {}
-        # import ipdb
-        # ipdb.set_trace()
+
         if self.pretransform is not None and not skip_pretransform:
             if self.pretransform.enable_grad:
                 if iterate_batch:
@@ -476,11 +475,8 @@ class AudioAutoencoder(nn.Module):
         else:
             # CHUNKED ENCODING
             # samples_per_latent is just the downsampling ratio (which is also the upsampling ratio)
-            # import ipdb
-            # ipdb.set_trace()
             samples_per_latent = self.downsampling_ratio
             total_size = audio.shape[2] # in samples
-            print(f'audio shape: {audio.shape}')
             batch_size = audio.shape[0]
             chunk_size *= samples_per_latent # converting metric in latents to samples
             overlap *= samples_per_latent # converting metric in latents to samples
@@ -501,12 +497,10 @@ class AudioAutoencoder(nn.Module):
             y_size = total_size // samples_per_latent
             # Create an empty latent, we will populate it with chunks as we encode them
             y_final = torch.zeros((batch_size,self.latent_dim,y_size)).to(audio.device)
-            print(f'y_final shape: {y_final.shape}')
             for i in range(num_chunks):
                 x_chunk = chunks[i,:]
                 # encode the chunk
                 y_chunk = self.encode(x_chunk)
-                print(f'y_chunk shape: {y_chunk.shape}')
                 # figure out where to put the audio along the time domain
                 if i == num_chunks-1:
                     # final chunk always goes at the end

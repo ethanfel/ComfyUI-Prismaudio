@@ -18,7 +18,6 @@ def load_ckpt_state_dict(ckpt_path, prefix=None):
 def remove_weight_norm_from_model(model):
     for module in model.modules():
         if hasattr(module, "weight"):
-            print(f"Removing weight norm from {module}")
             remove_weight_norm(module)
 
     return model

@@ -89,25 +89,6 @@ class AutoencoderPretransform(Pretransform):
     def load_state_dict(self, state_dict, strict=True):
         self.model.load_state_dict(state_dict, strict=strict)
 
-class WaveletPretransform(Pretransform):
-    def __init__(self, channels, levels, wavelet):
-        super().__init__(enable_grad=False, io_channels=channels, is_discrete=False)
-
-        from .wavelets import WaveletEncode1d, WaveletDecode1d
-
-        self.encoder = WaveletEncode1d(channels, levels, wavelet)
-        self.decoder = WaveletDecode1d(channels, levels, wavelet)
-
-        self.downsampling_ratio = 2 ** levels
-        self.io_channels = channels
-        self.encoded_channels = channels * self.downsampling_ratio
-    
-    def encode(self, x):
-        return self.encoder(x)
-    
-    def decode(self, z):
-        return self.decoder(z)
-    
 class PQMFPretransform(Pretransform):
     def __init__(self, attenuation=100, num_bands=16):
         # TODO: Fix PQMF to take in in-channels

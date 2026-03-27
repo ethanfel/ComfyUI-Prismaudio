@@ -213,8 +213,6 @@ class Video_Global(Conditioner):
         self.global_proj = nn.Sequential(nn.Linear(output_dim, global_dim))
 
     def forward(self, x, device: tp.Any = "cuda"):
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(x[0], torch.Tensor):
             video_feats = []
             for path in x:
@@ -242,8 +240,6 @@ class Video_Sync(Conditioner):
         self.embedder = nn.Sequential(nn.Linear(dim, output_dim))
 
     def forward(self, x, device: tp.Any = "cuda"):
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(x[0], torch.Tensor):
             video_feats = []
             for path in x:
@@ -269,8 +265,6 @@ class Text_Linear(Conditioner):
         self.embedder = nn.Sequential(nn.Linear(dim, output_dim))
 
     def forward(self, x, device: tp.Any = "cuda"):
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(x[0], torch.Tensor):
             video_feats = []
             for path in x:
@@ -295,8 +289,6 @@ class mm_unchang(Conditioner):
         super().__init__(dim, output_dim)
 
     def forward(self, x, device: tp.Any = "cuda"):
-        # import ipdb
-        # ipdb.set_trace()
         if not isinstance(x[0], torch.Tensor):
             video_feats = []
             for path in x:
@@ -349,8 +341,6 @@ class CLIPConditioner(Conditioner):
         
         self.model.to(device)
         self.proj_out.to(device)
-        # import ipdb
-        # ipdb.set_trace()
 
         self.model.eval()
         if not isinstance(images[0], torch.Tensor):

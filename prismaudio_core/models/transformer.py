@@ -421,9 +421,10 @@ class Attention(nn.Module):
             flex_attention_score_mod = None
 
         if flex_attention_block_mask is not None or flex_attention_score_mod is not None:
-            out = flex_attention_compiled(q,k,v,
-                block_mask = flex_attention_block_mask,
-                score_mod = flex_attention_score_mod)        
+            raise NotImplementedError(
+                "FlexAttention is not available in this build. "
+                "flex_attention_compiled is not defined. Remove flex_attention_block_mask/flex_attention_score_mod arguments."
+            )
         elif flash_attn_available:
             fa_dtype_in = q.dtype
             q, k, v = map(lambda t: rearrange(t, 'b h n d -> b n h d'), (q, k, v))

@@ -223,8 +223,6 @@ class DiffusionTransformer(nn.Module):
 
         # Get the batch of timestep embeddings
         timestep_embed = self.to_timestep_embed(self.timestep_features(t[:, None])) # (b, embed_dim)
-        # import ipdb
-        # ipdb.set_trace()
         # Timestep embedding is considered a global embedding. Add to the global conditioning if it exists
         if self.timestep_cond_type == "global":
             if global_embed is not None:

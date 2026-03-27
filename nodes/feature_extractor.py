@@ -153,9 +153,14 @@ class PrismAudioFeatureExtractor:
             return loader.load_features(cached_path)
 
         # Save video to temp file
+        import time
+        t0 = time.perf_counter()
+        frames = video.shape[0]
+        print(f"[PrismAudio] Converting {frames} frames to MP4 (fps={fps})...", flush=True)
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
             tmp_video = tmp.name
         _save_video_tensor_to_mp4(video, tmp_video, fps=fps)
+        print(f"[PrismAudio] MP4 ready in {time.perf_counter() - t0:.1f}s  ({tmp_video})", flush=True)
 
         # Build subprocess command
         script_path = os.path.join(

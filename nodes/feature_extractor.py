@@ -120,6 +120,7 @@ class PrismAudioFeatureExtractor:
                 "caption_cot": ("STRING", {"default": "", "multiline": True, "tooltip": "Chain-of-thought description"}),
             },
             "optional": {
+                "fps": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.001, "tooltip": "Frame rate of the input video. Match this to your source (e.g. 24, 25, 30, 60). Affects temporal sampling in feature extraction."}),
                 "python_env": ("STRING", {"default": "python", "tooltip": "Path to python binary with JAX/TF. Leave as 'python' to auto-install a managed venv on first use."}),
                 "cache_dir": ("STRING", {"default": "", "tooltip": "Directory to cache extracted features. Empty = temp dir"}),
                 "synchformer_ckpt": ("STRING", {"default": "", "tooltip": "Path to synchformer checkpoint (auto-resolved if empty)"}),
@@ -131,7 +132,7 @@ class PrismAudioFeatureExtractor:
     FUNCTION = "extract_features"
     CATEGORY = PRISMAUDIO_CATEGORY
 
-    def extract_features(self, video, caption_cot, python_env="python", cache_dir="", synchformer_ckpt=""):
+    def extract_features(self, video, caption_cot, fps=30.0, python_env="python", cache_dir="", synchformer_ckpt=""):
         # Resolve python binary — auto-install managed venv if using default
         if python_env == "python":
             python_env = _ensure_extract_env()
@@ -152,7 +153,7 @@ class PrismAudioFeatureExtractor:
         # Save video to temp file
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
             tmp_video = tmp.name
-        _save_video_tensor_to_mp4(video, tmp_video)
+        _save_video_tensor_to_mp4(video, tmp_video, fps=fps)
 
         # Build subprocess command
         script_path = os.path.join(

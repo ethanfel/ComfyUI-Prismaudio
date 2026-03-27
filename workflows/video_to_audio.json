@@ -50,7 +50,7 @@
         {"name": "features", "type": "PRISMAUDIO_FEATURES", "links": [4], "slot_index": 0}
       ],
       "properties": {"Node name for S&R": "PrismAudioFeatureExtractor"},
-      "widgets_values": ["describe the video in detail", "python", "", ""]
+      "widgets_values": ["describe the video in detail", 30.0, "python", "", ""]
     },
     {
       "id": 4,

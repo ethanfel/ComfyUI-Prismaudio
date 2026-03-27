@@ -68,12 +68,11 @@ class FeaturesUtils:
     def _ensure_videoprism(self):
         if self._vp_model is not None:
             return
-        import videoprism as vp
+        from videoprism import models as vp
         import jax
         print("[FeaturesUtils] Loading VideoPrism...")
         self._vp_model = vp.get_model("videoprism_public_v1_base")
         self._vp_state = vp.load_pretrained_weights("videoprism_public_v1_base")
-        import jax
         self._jax_forward = jax.jit(
             lambda x: self._vp_model.apply(self._vp_state, x, train=False)
         )

@@ -78,29 +78,14 @@ def _hash_inputs(video_tensor, cot_text):
     return h.hexdigest()[:16]
 
 
-def _save_video_tensor_to_mp4(video_tensor, output_path, fps=30):
-    """Save ComfyUI IMAGE tensor [T,H,W,C] to MP4 by piping raw RGB to ffmpeg.
+def _save_frames_to_npy(video_tensor, output_path):
+    """Save ComfyUI IMAGE tensor [T,H,W,C] float32 [0,1] to .npy as uint8.
 
-    Avoids intermediate PNG files — frames are streamed directly to ffmpeg stdin.
+    Lossless — avoids H.264 encode/decode roundtrip.
     """
+    import numpy as np
     frames_np = (video_tensor.cpu().numpy() * 255).astype("uint8")
-    T, H, W, C = frames_np.shape
-
-    result = subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-f", "rawvideo", "-vcodec", "rawvideo",
-            "-s", f"{W}x{H}", "-pix_fmt", "rgb24",
-            "-r", str(fps),
-            "-i", "pipe:0",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            output_path,
-        ],
-        input=frames_np.tobytes(),
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"[PrismAudio] ffmpeg failed:\n{result.stderr.decode()}")
+    np.save(output_path, frames_np)
 
 
 class PrismAudioFeatureExtractor:
@@ -143,15 +128,15 @@ class PrismAudioFeatureExtractor:
             loader = PrismAudioFeatureLoader()
             return loader.load_features(cached_path)
 
-        # Save video to temp file
+        # Save frames to temp file (lossless .npy, no codec roundtrip)
         import time
         t0 = time.perf_counter()
         frames = video.shape[0]
-        print(f"[PrismAudio] Converting {frames} frames to MP4 (fps={fps})...", flush=True)
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+        print(f"[PrismAudio] Saving {frames} frames to .npy (fps={fps})...", flush=True)
+        with tempfile.NamedTemporaryFile(suffix=".npy", delete=False) as tmp:
             tmp_video = tmp.name
-        _save_video_tensor_to_mp4(video, tmp_video, fps=fps)
-        print(f"[PrismAudio] MP4 ready in {time.perf_counter() - t0:.1f}s  ({tmp_video})", flush=True)
+        _save_frames_to_npy(video, tmp_video)
+        print(f"[PrismAudio] Frames saved in {time.perf_counter() - t0:.1f}s", flush=True)
 
         # Build subprocess command
         script_path = os.path.join(
@@ -165,6 +150,7 @@ class PrismAudioFeatureExtractor:
             "--video", tmp_video,
             "--cot_text", caption_cot,
             "--output", cached_path,
+            "--source_fps", str(fps),
         ]
         # Auto-resolve synchformer checkpoint from the prismaudio models dir
         if not synchformer_ckpt:

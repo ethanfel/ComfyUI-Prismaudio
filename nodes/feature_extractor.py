@@ -203,4 +203,5 @@ class PrismAudioFeatureExtractor:
 
         # Load the extracted features
         loader = PrismAudioFeatureLoader()
-        return loader.load_features(cached_path)
+        features, = loader.load_features(cached_path)
+        return (features, float(fps))

@@ -97,7 +97,8 @@ class PrismAudioFeatureExtractor:
                 "caption_cot": ("STRING", {"default": "", "multiline": True, "tooltip": "Chain-of-thought description"}),
             },
             "optional": {
-                "fps": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.001, "tooltip": "Frame rate of the input video. Match this to your source (e.g. 24, 25, 30, 60). Affects temporal sampling in feature extraction."}),
+                "video_info": ("VHS_VIDEOINFO", {"tooltip": "Connect VHS LoadVideo info output to auto-set fps."}),
+                "fps": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.001, "tooltip": "Frame rate of the input video. Ignored if video_info is connected."}),
                 "python_env": ("STRING", {"default": "python", "tooltip": "Path to python binary with JAX/TF. Leave as 'python' to auto-install a managed venv on first use."}),
                 "cache_dir": ("STRING", {"default": "", "tooltip": "Directory to cache extracted features. Empty = temp dir"}),
                 "synchformer_ckpt": ("STRING", {"default": "", "tooltip": "Path to synchformer checkpoint (auto-resolved if empty)"}),
@@ -110,7 +111,11 @@ class PrismAudioFeatureExtractor:
     FUNCTION = "extract_features"
     CATEGORY = PRISMAUDIO_CATEGORY
 
-    def extract_features(self, video, caption_cot, fps=30.0, python_env="python", cache_dir="", synchformer_ckpt="", hf_token=""):
+    def extract_features(self, video, caption_cot, video_info=None, fps=30.0, python_env="python", cache_dir="", synchformer_ckpt="", hf_token=""):
+        # Resolve fps from VHS video_info if connected
+        if video_info is not None:
+            fps = video_info["loaded_fps"]
+
         # Resolve python binary — auto-install managed venv if empty or default
         if not python_env.strip() or python_env.strip() == "python":
             python_env = _ensure_extract_env()

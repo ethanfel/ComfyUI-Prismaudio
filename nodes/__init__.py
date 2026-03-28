@@ -7,6 +7,8 @@ _NODES = {
     "PrismAudioFeatureExtractor": (".feature_extractor", "PrismAudioFeatureExtractor", "PrismAudio Feature Extractor"),
     "PrismAudioSampler": (".sampler", "PrismAudioSampler", "PrismAudio Sampler"),
     "PrismAudioTextOnly": (".text_only", "PrismAudioTextOnly", "PrismAudio Text Only"),
+    "PrismAudioLoRATrainer": (".lora_trainer", "PrismAudioLoRATrainer", "PrismAudio LoRA Trainer"),
+    "PrismAudioLoRALoader":  (".lora_loader",  "PrismAudioLoRALoader",  "PrismAudio LoRA Loader"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

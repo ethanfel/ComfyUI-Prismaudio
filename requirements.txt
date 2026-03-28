@@ -9,3 +9,4 @@ descript-audio-codec
 vector-quantize-pytorch
 scipy
 tqdm
+torchaudio

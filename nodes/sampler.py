@@ -15,7 +15,7 @@ class PrismAudioSampler:
             "required": {
                 "model": ("PRISMAUDIO_MODEL",),
                 "features": ("PRISMAUDIO_FEATURES",),
-                "duration": ("FLOAT", {"default": 10.0, "min": 1.0, "max": 30.0, "step": 0.1, "tooltip": "Audio duration in seconds"}),
+                "duration": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 30.0, "step": 0.1, "tooltip": "Audio duration in seconds. Set to 0 to use the video duration from features automatically."}),
                 "steps": ("INT", {"default": 24, "min": 1, "max": 100, "tooltip": "Number of sampling steps"}),
                 "cfg_scale": ("FLOAT", {"default": 5.0, "min": 1.0, "max": 20.0, "step": 0.1, "tooltip": "Classifier-free guidance scale"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFF}),
@@ -32,6 +32,13 @@ class PrismAudioSampler:
         dtype = model["dtype"]
         strategy = model["strategy"]
         diffusion = model["model"]
+
+        # Resolve duration: 0 means use video duration from features
+        if duration <= 0:
+            if "duration" not in features:
+                raise ValueError("[PrismAudio] duration=0 but features contain no duration. Set duration manually or use PrismAudioFeatureExtractor.")
+            duration = features["duration"]
+            print(f"[PrismAudio] Using video duration from features: {duration:.2f}s", flush=True)
 
         # Compute latent dimensions
         latent_length = round(SAMPLE_RATE * duration / DOWNSAMPLING_RATIO)

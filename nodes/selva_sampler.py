@@ -16,7 +16,7 @@ class SelvaSampler:
                     "tooltip": "CLIP text for audio generation. Leave empty to reuse the prompt from SelvaFeatureExtractor.",
                 }),
                 "negative_prompt": ("STRING", {
-                    "default": "", "multiline": True,
+                    "default": "", "multiline": False,
                     "tooltip": "Sounds to steer away from, e.g. 'wind noise, background music'.",
                 }),
                 "duration": ("FLOAT", {

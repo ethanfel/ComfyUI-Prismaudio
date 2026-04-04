@@ -66,7 +66,8 @@ class SelvaModelLoader:
         print("[SelVA] Resolving weights (auto-downloading if missing)...", flush=True)
         video_enc_path = _ensure("video_enc_sup_5.pth")
         gen_path       = _ensure(gen_filename)
-        vae_path       = _ensure(f"v1-{mode}.pth", subdir="ext")
+        vae_name = "v1-16.pth" if mode == "16k" else "v1-44.pth"
+        vae_path       = _ensure(vae_name, subdir="ext")
         synch_path     = _synchformer_path()
         bigvgan_path   = _ensure("best_netG.pt", subdir="ext") if has_bigvgan else None
 

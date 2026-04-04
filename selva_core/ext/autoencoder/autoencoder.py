@@ -19,7 +19,7 @@ class AutoEncoderModule(nn.Module):
                  need_vae_encoder: bool = True):
         super().__init__()
         self.vae: VAE = get_my_vae(mode).eval()
-        vae_state_dict = torch.load(vae_ckpt_path, weights_only=True, map_location='cpu')
+        vae_state_dict = torch.load(vae_ckpt_path, weights_only=False, map_location='cpu')
         self.vae.load_state_dict(vae_state_dict)
         self.vae.remove_weight_norm()
 

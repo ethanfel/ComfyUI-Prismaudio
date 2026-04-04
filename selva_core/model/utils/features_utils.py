@@ -57,7 +57,7 @@ class FeaturesUtils(nn.Module):
 
             self.synchformer = Synchformer(video=True, audio=False)
             self.synchformer.load_state_dict(
-                torch.load(synchformer_ckpt, weights_only=True, map_location='cpu'))
+                torch.load(synchformer_ckpt, weights_only=False, map_location='cpu'))
             
             self.text_encoder_t5 = T5EncoderModel.from_pretrained('google/flan-t5-base')
             self.tokenizer_t5 = T5TokenizerFast.from_pretrained('google/flan-t5-base')

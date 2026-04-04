@@ -15,7 +15,7 @@ class BigVGAN(nn.Module):
         super().__init__()
         vocoder_cfg = OmegaConf.load(config_path)
         self.vocoder = BigVGANVocoder(vocoder_cfg).eval()
-        vocoder_ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=True)['generator']
+        vocoder_ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)['generator']
         self.vocoder.load_state_dict(vocoder_ckpt)
 
         self.weight_norm_removed = False

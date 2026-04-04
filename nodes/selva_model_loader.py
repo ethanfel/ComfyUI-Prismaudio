@@ -74,14 +74,14 @@ class SelvaModelLoader:
         print(f"[SelVA] Loading TextSynch from {video_enc_path}", flush=True)
         net_video_enc = get_my_textsynch("depth1").to(device, dtype).eval()
         net_video_enc.load_weights(
-            torch.load(video_enc_path, map_location="cpu", weights_only=True)
+            torch.load(video_enc_path, map_location="cpu", weights_only=False)
         )
 
         print(f"[SelVA] Loading MMAudio ({variant}) from {gen_path}", flush=True)
         seq_cfg = CONFIG_16K if mode == "16k" else CONFIG_44K
         net_generator = get_my_mmaudio(variant).to(device, dtype).eval()
         net_generator.load_weights(
-            torch.load(gen_path, map_location="cpu", weights_only=True)
+            torch.load(gen_path, map_location="cpu", weights_only=False)
         )
 
         print("[SelVA] Loading FeaturesUtils (CLIP + T5 + Synchformer + VAE)...", flush=True)

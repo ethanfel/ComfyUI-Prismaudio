@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 import folder_paths
 
-from .utils import PRISMAUDIO_CATEGORY, get_offload_device, determine_offload_strategy
+from .utils import SELVA_CATEGORY, get_offload_device, determine_offload_strategy
 
 # Variant → (generator filename, mode, has_bigvgan)
 _VARIANTS = {
@@ -96,7 +96,7 @@ class SelvaModelLoader:
     RETURN_TYPES = ("SELVA_MODEL",)
     RETURN_NAMES = ("model",)
     FUNCTION = "load_model"
-    CATEGORY = PRISMAUDIO_CATEGORY
+    CATEGORY = SELVA_CATEGORY
 
     def load_model(self, variant, precision, offload_strategy):
         from selva_core.model.networks_generator import get_my_mmaudio

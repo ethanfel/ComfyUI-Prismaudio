@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .utils import PRISMAUDIO_CATEGORY, get_device, get_offload_device, soft_empty_cache
+from .utils import SELVA_CATEGORY, get_device, get_offload_device, soft_empty_cache
 
 # SelVA video preprocessing constants (from selva/utils/eval_utils.py)
 _CLIP_SIZE = 384
@@ -68,7 +68,7 @@ class SelvaFeatureExtractor:
     RETURN_TYPES = ("SELVA_FEATURES", "FLOAT", "STRING")
     RETURN_NAMES = ("features", "fps", "prompt")
     FUNCTION = "extract_features"
-    CATEGORY = PRISMAUDIO_CATEGORY
+    CATEGORY = SELVA_CATEGORY
 
     def extract_features(self, model, video, prompt, video_info=None, fps=30.0,
                          duration=0.0, cache_dir=""):

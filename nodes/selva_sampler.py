@@ -1,7 +1,7 @@
 import torch
 import comfy.utils
 
-from .utils import PRISMAUDIO_CATEGORY, get_device, get_offload_device, soft_empty_cache
+from .utils import SELVA_CATEGORY, get_device, get_offload_device, soft_empty_cache
 
 
 class SelvaSampler:
@@ -35,7 +35,7 @@ class SelvaSampler:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "generate"
-    CATEGORY = PRISMAUDIO_CATEGORY
+    CATEGORY = SELVA_CATEGORY
 
     def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed):
         from selva_core.model.flow_matching import FlowMatching

@@ -1,5 +1,5 @@
 """
-ComfyUI-PrismAudio: Video-to-Audio and Text-to-Audio generation using PrismAudio (ICLR 2026).
+ComfyUI-SelVA: Text-guided video-to-audio generation using SelVA / MMAudio.
 """
 import sys
 import os

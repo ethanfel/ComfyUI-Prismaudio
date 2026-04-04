@@ -19,17 +19,19 @@ _PRISMAUDIO_DIR = Path(folder_paths.models_dir) / "prismaudio"
 
 _HF_REPO = "jnwnlee/SelVA"
 
-# filename → (hf_repo_path, expected_md5)
+# filename → (hf_repo_path, expected_md5 or None to skip check)
+# Note: 44k generators are named 44khz in the HF repo; md5=None since the
+# original download_utils had the wrong filenames so those md5s are unverified.
 _WEIGHTS = {
-    "video_enc_sup_5.pth":           ("weights/video_enc_sup_5.pth",           "ff09a6dc36148536ee4db97eba081d05"),
-    "generator_small_16k_sup_5.pth": ("weights/generator_small_16k_sup_5.pth", "1cb0f0deec52de37f67b1fd9965337d0"),
-    "generator_small_44k_sup_5.pth": ("weights/generator_small_44k_sup_5.pth", "d4df8569624093ac80af99b8b7434525"),
-    "generator_medium_44k_sup_5.pth":("weights/generator_medium_44k_sup_5.pth","e9157e62b4863ad306e89e8f3a587748"),
-    "generator_large_44k_sup_5.pth": ("weights/generator_large_44k_sup_5.pth", "ab3db08b124d3aaa53eb7a1f52f1fb3f"),
-    "v1-16.pth":                     ("ext_weights/v1-16.pth",                 "69f56803f59a549a1a507c93859fd4d7"),
-    "v1-44.pth":                     ("ext_weights/v1-44.pth",                 "fab020275fa44c6589820ce025191600"),
-    "best_netG.pt":                  ("ext_weights/best_netG.pt",              "eeaf372a38a9c31c362120aba2dde292"),
-    "synchformer_state_dict.pth":    ("ext_weights/synchformer_state_dict.pth","5b2f5594b0730f70e41e549b7c94390c"),
+    "video_enc_sup_5.pth":           ("weights/video_enc_sup_5.pth",              "ff09a6dc36148536ee4db97eba081d05"),
+    "generator_small_16k_sup_5.pth": ("weights/generator_small_16k_sup_5.pth",    "1cb0f0deec52de37f67b1fd9965337d0"),
+    "generator_small_44k_sup_5.pth": ("weights/generator_small_44khz_sup_5.pth",  None),
+    "generator_medium_44k_sup_5.pth":("weights/generator_medium_44khz_sup_5.pth", None),
+    "generator_large_44k_sup_5.pth": ("weights/generator_large_44khz_sup_5.pth",  None),
+    "v1-16.pth":                     ("ext_weights/v1-16.pth",                    "69f56803f59a549a1a507c93859fd4d7"),
+    "v1-44.pth":                     ("ext_weights/v1-44.pth",                    "fab020275fa44c6589820ce025191600"),
+    "best_netG.pt":                  ("ext_weights/best_netG.pt",                 "eeaf372a38a9c31c362120aba2dde292"),
+    "synchformer_state_dict.pth":    ("ext_weights/synchformer_state_dict.pth",   "5b2f5594b0730f70e41e549b7c94390c"),
 }
 
 
@@ -56,6 +58,8 @@ def _ensure(filename, subdir=None):
     repo_path, expected_md5 = entry
 
     if dest_path.exists():
+        if expected_md5 is None:
+            return str(dest_path)
         actual = _md5(dest_path)
         if actual == expected_md5:
             return str(dest_path)

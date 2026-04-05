@@ -199,6 +199,8 @@ The table below gives a rough scaling guide. Quality and diversity of recordings
 
 Higher batch size gives smoother loss curves and faster convergence. If you have headroom, prefer larger batches over more steps.
 
+**Observed results:** batch 16 reaches the same loss in ~2600 steps that batch 1 needed 8000+ steps to reach, with a near-perfectly smooth curve. On a 24 GB GPU, batch 16 is the recommended default for `large_44k`.
+
 ### Rank
 
 | Rank | Use case |

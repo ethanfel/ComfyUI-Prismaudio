@@ -36,10 +36,40 @@ For each video clip you want to train on:
 2. Connect it to **SelVA Feature Extractor**.
 3. Set **`cache_dir`** to a dedicated dataset folder, e.g. `dataset/my_sound`.
 4. Set **`name`** to a short descriptive label, e.g. `dog_bark`. The node will save `dog_bark_001.npz`, then `dog_bark_002.npz`, etc. automatically as you process more clips.
-5. Set the **`prompt`** to describe the sound (e.g. `a dog barking`). This prompt is used to condition the sync features — be specific.
-6. Optionally connect a **mask** to isolate the sound source in frame (recommended when the scene has multiple objects).
+5. Set the **`prompt`** to describe the sound (e.g. `a dog barking`). This prompt conditions the Synchformer sync features — be as specific as possible (see prompt guide below).
+6. Optionally connect a **mask** to isolate the sound source in frame (strongly recommended when multiple objects are visible — see masking note below).
 
 > **Tip:** The prompt used for feature extraction conditions the *visual sync features*. You can use a different, more precise prompt at training time — see Step 2.
+
+### Prompt guide
+
+The prompt is not just a label — it directly shapes what the Synchformer pays attention to in the video. Imprecise prompts produce unfocused sync features, which the LoRA then has to compensate for, often introducing noise.
+
+**Good prompts are specific about:**
+- The sound source (what object is making the sound)
+- The acoustic character (loud/quiet, sharp/soft, wet/dry)
+- The action producing the sound (if applicable)
+
+| Sound | Weak prompt | Strong prompt |
+|---|---|---|
+| Dog bark | `dog` | `a large dog barking loudly` |
+| Footsteps | `walking` | `heavy boots on a wooden floor` |
+| Water | `water` | `water dripping into a metal bucket` |
+| Explosion | `explosion` | `a large explosion with deep bass rumble` |
+| Door | `door` | `a heavy wooden door slamming shut` |
+
+**Rules of thumb:**
+- Describe the *sound*, not the visual scene. `a person hitting a drum` is better than `a drummer on stage`.
+- Keep prompts consistent across all clips for the same sound class. Mixing `a dog barking` and `loud barking dog` in the same dataset creates conflicting sync features.
+- Avoid negations (`no background noise`) — the model does not understand negations in sync feature conditioning.
+
+### Masking note
+
+If the video frame contains multiple moving objects, CLIP and sync features will be diluted by irrelevant motion. Use a segmentation mask (SAM2 or Grounding DINO+SAM) to isolate the sound source:
+
+- Connect the mask to the **`mask`** input on SelVA Feature Extractor.
+- Leave `mask_strength` at `1.0` for clean isolation; lower it only if the masked region is very small and the model loses context.
+- Re-extract features with a mask even if you already have `.npz` files — better features directly reduce training noise.
 
 ### 1.2 Collect clean audio
 

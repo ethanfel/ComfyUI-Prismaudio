@@ -276,6 +276,12 @@ def main():
         try:
             audio = load_audio(audio_path, sample_rate, duration)
             x1    = extract_audio_latent(audio, feature_utils, device, dtype)
+            # STFT rounding can produce ±1 frame — pad or trim to exact seq length
+            tgt = seq_cfg.latent_seq_len
+            if x1.shape[1] < tgt:
+                x1 = F.pad(x1, (0, 0, 0, tgt - x1.shape[1]))
+            elif x1.shape[1] > tgt:
+                x1 = x1[:, :tgt, :]
             text_clip = encode_text_clip(clip_model, tokenizer_clip, [prompt], device).cpu()
             dataset.append((x1, bundle["clip_features"], bundle["sync_features"], text_clip))
         except Exception as e:

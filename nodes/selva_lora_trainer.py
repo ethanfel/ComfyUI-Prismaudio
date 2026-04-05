@@ -339,7 +339,13 @@ class SelvaLoraTrainer:
                 audio_b = audio.unsqueeze(0).to(device)
                 dist = vae_utils.encode_audio(audio_b)
                 # VAE outputs [B, latent_dim, T]; generator expects [B, T, latent_dim]
-                x1   = dist.mode().clone().transpose(1, 2).cpu()
+                x1 = dist.mode().clone().transpose(1, 2).cpu()
+                # STFT rounding can produce ±1 frame — pad or trim to exact seq length
+                tgt = seq_cfg.latent_seq_len
+                if x1.shape[1] < tgt:
+                    x1 = F.pad(x1, (0, 0, 0, tgt - x1.shape[1]))
+                elif x1.shape[1] > tgt:
+                    x1 = x1[:, :tgt, :]
 
                 # Text → CLIP features (reuse already-loaded CLIP from inference model)
                 text_clip = feature_utils_orig.encode_text_clip([prompt]).cpu()

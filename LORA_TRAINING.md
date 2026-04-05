@@ -109,6 +109,7 @@ The script will:
 | `--warmup_steps` | `500` | Linear LR warmup steps |
 | `--grad_accum` | `4` | Gradient accumulation steps (effective batch = grad_accum × 1) |
 | `--save_every` | `500` | Save a checkpoint every N steps |
+| `--resume` | `None` | Path to a step checkpoint to resume from (e.g. `lora_output/adapter_step01000.pt`) |
 | `--precision` | `bf16` | Mixed precision: `bf16`, `fp16`, `fp32` |
 | `--seed` | `42` | Random seed |
 

@@ -167,8 +167,8 @@ def main():
                         help="Path to a step checkpoint (.pt) to resume training from.")
     parser.add_argument("--precision",          default="bf16", choices=["bf16", "fp16", "fp32"])
     parser.add_argument("--seed",               type=int,   default=42)
-    parser.add_argument("--timestep_mode",      default="logit_normal", choices=["logit_normal", "uniform"],
-                        help="Timestep sampling distribution. logit_normal reduces white noise artifacts.")
+    parser.add_argument("--timestep_mode",      default="uniform", choices=["uniform", "logit_normal"],
+                        help="Timestep sampling distribution. uniform matches original MMAudio training. logit_normal reaches lower loss but perceptual improvement is dataset-dependent.")
     parser.add_argument("--logit_normal_sigma", type=float, default=1.0,
                         help="Spread of logit-normal distribution (only used with --timestep_mode logit_normal).")
     args = parser.parse_args()

@@ -504,7 +504,7 @@ class SelvaLoraTrainer:
                 loss_history.append(avg)
                 lr_now = scheduler.get_last_lr()[0]
                 print(f"[LoRA Trainer] step {step:5d}/{steps}  "
-                      f"loss={avg:.4f}  lr={lr_now:.2e}", flush=True)
+                      f"loss={avg:.4f}  lr={lr_now:.2e}  bs={batch_size}", flush=True)
                 running_loss = 0.0
 
                 # Live preview: send updated loss curve to ComfyUI frontend

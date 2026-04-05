@@ -9,7 +9,7 @@ LoRA lets you teach the model new or partially-known sound classes using a small
 Training is split into two steps:
 
 1. **Dataset preparation** (in ComfyUI) — extract visual features from your video clips using the `SelVA Feature Extractor` node, and collect clean matching audio files.
-2. **Training** (command line) — run `train_lora.py` with your dataset directory.
+2. **Training** (in ComfyUI or command line) — run the `SelVA LoRA Trainer` node or `train_lora.py`.
 
 The training script only loads the generator and the VAE encoder. CLIP visual features and sync features come pre-computed from the `.npz` files, so Synchformer and T5 are not loaded during training, saving 3–4 GB of VRAM.
 
@@ -21,6 +21,7 @@ Same environment as SelVA inference. Additional Python packages:
 
 ```
 torchaudio
+soundfile
 ```
 
 ---
@@ -54,7 +55,9 @@ dataset/my_sound/
     dog_bark_003.wav
 ```
 
-Supported audio formats: `.wav`, `.flac`, `.mp3`, `.ogg`, `.aiff`, `.aif`
+Supported audio formats: `.wav`, `.flac`, `.ogg`, `.aiff`, `.aif`
+
+> `.mp3` is not recommended — lossy compression degrades training quality. Use `.flac` or `.wav`.
 
 The audio will be automatically resampled and trimmed/padded to match the model's expected duration. Use clean, isolated recordings — no background noise.
 
@@ -72,7 +75,17 @@ Priority: `prompts.txt` > prompt embedded in `.npz` > directory name as fallback
 
 ---
 
-## Step 2 — Run training
+## Step 2 — Train
+
+### Option A — SelVA LoRA Trainer node (ComfyUI)
+
+Connect the node and set parameters directly in the UI. The node outputs the trained model ready to wire into the Sampler, and saves loss curve images to the output directory.
+
+```
+SelVA Model Loader → SelVA LoRA Trainer → SelVA Sampler
+```
+
+### Option B — Command line
 
 ```bash
 python train_lora.py \
@@ -81,7 +94,8 @@ python train_lora.py \
     --variant large_44k \
     --selva_dir /path/to/ComfyUI/models/selva \
     --rank 16 \
-    --steps 2000 \
+    --steps 4000 \
+    --batch_size 4 \
     --lr 1e-4
 ```
 
@@ -89,7 +103,7 @@ The script will:
 1. Load the VAE, CLIP text encoder, and generator.
 2. Pre-load all clips (audio encoded to latents, features loaded from `.npz`).
 3. Train LoRA adapters for the specified number of steps.
-4. Save a checkpoint every `--save_every` steps and a final `adapter_final.pt` with embedded metadata.
+4. Save a checkpoint every `--save_every` steps, a final `adapter_final.pt`, and loss curve images.
 
 ---
 
@@ -107,10 +121,10 @@ The script will:
 | `--lr` | `1e-4` | Learning rate |
 | `--steps` | `2000` | Total training steps |
 | `--warmup_steps` | `100` | Linear LR warmup steps |
-| `--batch_size` | `4` | Clips per training step |
-| `--grad_accum` | `1` | Gradient accumulation steps |
+| `--batch_size` | `4` | Clips per training step — higher is more stable, uses more VRAM |
+| `--grad_accum` | `1` | Gradient accumulation steps (use when batch_size is already > 1) |
 | `--save_every` | `500` | Save a checkpoint every N steps |
-| `--resume` | `None` | Path to a step checkpoint to resume from (e.g. `lora_output/adapter_step01000.pt`) |
+| `--resume` | `None` | Path to a step checkpoint to resume from (e.g. `lora_output/adapter_step04000.pt`) |
 | `--precision` | `bf16` | Mixed precision: `bf16`, `fp16`, `fp32` |
 | `--seed` | `42` | Random seed |
 
@@ -123,6 +137,8 @@ Connect **SelVA LoRA Loader** between the model loader and the sampler:
 ```
 SelVA Model Loader → SelVA LoRA Loader → SelVA Sampler
 ```
+
+> **Important:** Wire the LoRA Loader output to the **Sampler**, not the Feature Extractor. The LoRA adapts the generator which only runs in the Sampler.
 
 | Input | Description |
 |---|---|
@@ -172,50 +188,80 @@ The table below gives a rough scaling guide. Quality and diversity of recordings
 
 **Diversity beats quantity.** Ten clips of a dog barking in different environments (indoors, outdoors, distant, close) train better than fifty clips of the same recording. Vary: distance, room acoustics, intensity, speed.
 
+### Batch size
+
+| Batch size | VRAM (large_44k) | Use case |
+|---|---|---|
+| `1` | ~9 GB | Minimal VRAM, noisy gradients |
+| `4` | ~12 GB | Good default — stable gradients, reasonable speed |
+| `8` | ~15 GB | Better convergence on larger datasets |
+| `16` | ~20 GB | Best gradient quality when VRAM allows |
+
+Higher batch size gives smoother loss curves and faster convergence. If you have headroom, prefer larger batches over more steps.
+
 ### Rank
 
 | Rank | Use case |
 |---|---|
 | `8` | Fine details on a sound the model already knows well |
 | `16` | Default — good balance of capacity and VRAM |
-| `32` | Harder sounds or larger style shifts |
+| `32` | Harder sounds or larger style shifts (30+ clips recommended) |
 
 Higher rank increases VRAM usage and overfitting risk on small datasets.
 
 ### Steps
 
+With `batch_size=4` as the default, these are rough guidelines:
+
 | Dataset size | Recommended steps |
 |---|---|
-| 10–20 clips | 500–1000 |
-| 20–50 clips | 1000–3000 |
-| 50+ clips | 2000–5000 |
+| 10–20 clips | 2000–4000 |
+| 20–50 clips | 4000–8000 |
+| 50+ clips | 6000–15000 |
 
-Monitor the loss — it should decrease steadily in the first few hundred steps. If it plateaus early, try a higher rank or more clips. If it drops very fast and then bounces, lower the learning rate.
+Watch the loss curve — if the smoothed line has been flat for 2000+ steps, training has converged for your dataset size. Adding more clips will let it go lower.
 
 ### Learning rate
 
-`1e-4` is a safe default. If training is unstable (loss spikes), try `5e-5`. If learning seems slow, try `2e-4`.
+`1e-4` is the recommended default for any batch size. If training is unstable (loss spikes in the first 200 steps), try `5e-5`. If convergence is very slow, try `2e-4`.
+
+Warmup (default 100 steps) ramps the LR from 0 to avoid instability at the start.
 
 ### Target layers
 
-`attn.qkv` (default) adapts only the self-attention QKV projections — 21 layers in `large_44k`. This is the recommended starting point.
+`attn.qkv` (default) adapts only the self-attention QKV projections. This is the recommended starting point for all dataset sizes.
 
-Add `linear1` to also adapt post-attention projections if `attn.qkv` alone is not enough:
+Add `linear1` to also adapt post-attention projections for large-scale domain shifts or when `attn.qkv` alone plateaus too early:
 
 ```bash
 --target attn.qkv linear1
 ```
 
+Only add `linear1` once you have 150+ clips — it doubles the adapted parameter count and overfits faster on small datasets.
+
+### Adapter strength at inference
+
+| Strength | Effect |
+|---|---|
+| `0.5–0.7` | Conservative — blends adapter with base model, less noise |
+| `1.0` | Full adapter strength (default) |
+| `>1.0` | Exaggerated effect, may introduce artifacts |
+
+If the generated audio has noticeable white noise or artifacts, lower the strength to `0.6–0.7` before adjusting anything else. Also try lowering CFG scale in the Sampler.
+
 ### Loss interpretation
 
 A typical loss curve:
-- Starts around `0.8–1.2`
-- Should reach `0.3–0.6` after convergence for a clean sound class
-- Below `0.1` on a small dataset usually means overfitting
+- Starts around `0.8–1.0`
+- Should reach `0.55–0.65` after convergence on a clean sound class with 10–30 clips
+- Below `0.4` indicates strong learning — usually requires 50+ diverse clips
+- Below `0.1` on a small dataset means overfitting
+
+The smoothed curve flattening for 2000+ steps is the clearest sign to stop or add more data.
 
 ### Precision
 
-Use `bf16` on Ampere+ GPUs (RTX 3xxx, A100, etc.). Fall back to `fp16` on older GPUs. `fp32` is only needed for debugging — 2× more VRAM.
+Use `bf16` on Ampere+ GPUs (RTX 3xxx/4xxx, A100). Fall back to `fp16` on older GPUs. `fp32` is only needed for debugging — 2× more VRAM.
 
 ---
 
@@ -223,11 +269,14 @@ Use `bf16` on Ampere+ GPUs (RTX 3xxx, A100, etc.). Fall back to `fp16` on older 
 
 ```
 lora_output/my_sound/
-    adapter_step00500.pt   ← checkpoint at step 500
-    adapter_step01000.pt   ← checkpoint at step 1000
+    adapter_step00500.pt      ← step checkpoint (includes optimizer state for resume)
+    adapter_step01000.pt
     ...
-    adapter_final.pt       ← final adapter with embedded metadata
-    meta.json              ← human-readable metadata (rank, alpha, target, steps)
+    adapter_final.pt          ← final adapter with embedded metadata (inference only)
+    meta.json                 ← human-readable metadata
+    sample_step00500.wav      ← quick eval sample at each checkpoint
+    loss_raw.png              ← raw loss curve
+    loss_smoothed.png         ← EMA-smoothed loss curve
 ```
 
 `adapter_final.pt` format:
@@ -244,6 +293,8 @@ lora_output/my_sound/
 }
 ```
 
+Step checkpoints (e.g. `adapter_step01000.pt`) additionally contain `optimizer` and `scheduler` state for resuming.
+
 ---
 
 ## Troubleshooting
@@ -257,11 +308,21 @@ The `--data_dir` path is wrong or no `.npz` files were extracted there yet. Run 
 **`No audio file found for clip.npz`**
 Place an audio file with the exact same stem next to the `.npz`: `clip.wav`, `clip.flac`, etc.
 
+**The sound is audible but there is white noise on top**
+Lower the adapter strength to `0.6–0.7` in SelVA LoRA Loader. Also try lowering CFG scale in the Sampler. This is normal when the model hasn't fully converged — more clips and more steps will reduce it.
+
+**LoRA appears to have no effect**
+Make sure the SelVA LoRA Loader output is wired to the **Sampler** input, not the Feature Extractor. The Feature Extractor does not use the generator.
+
 **Loss does not decrease**
-- Try a higher learning rate (`2e-4`) or more warmup steps.
+- Increase `batch_size` for more stable gradients.
+- Try a higher learning rate (`2e-4`) or check that warmup isn't too long.
 - Check that the audio files are clean and actually contain the target sound.
 - Check that the `.npz` features were extracted with a relevant prompt.
 
 **Loss explodes or NaN**
 - Lower the learning rate (`5e-5`).
-- Make sure audio is normalized to `[-1, 1]`. PCM files with 16-bit integer encoding may need to be converted first (`ffmpeg -i input.wav -ar 44100 output.wav`).
+- Make sure audio is normalized to `[-1, 1]`. PCM files with 16-bit integer encoding may need to be converted: `ffmpeg -i input.wav -ar 44100 -sample_fmt s16 output.wav`
+
+**Loss plateaus early (above 0.7)**
+Dataset is the bottleneck. Add more clips — diversity matters more than quantity.

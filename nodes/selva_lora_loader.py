@@ -78,6 +78,15 @@ class SelvaLoraLoader:
             )
         load_lora(generator, state_dict)
 
+        # Sanity check: confirm lora_A weights are non-zero (lora_B starts at zero by design)
+        norms = [p.norm().item() for name, p in generator.named_parameters()
+                 if "lora_A" in name]
+        if norms:
+            print(f"[SelVA LoRA] lora_A weight norms: min={min(norms):.4f} "
+                  f"max={max(norms):.4f} mean={sum(norms)/len(norms):.4f}", flush=True)
+        else:
+            print("[SelVA LoRA] WARNING: no lora_A params found after loading!", flush=True)
+
         # Apply strength scaling: multiply all lora_B params by strength
         # (lora_B is initialised to zero, so scaling A is equivalent but less clean)
         if strength != 1.0:

@@ -338,7 +338,8 @@ class SelvaLoraTrainer:
                 # encode_audio is @inference_mode — .clone() exits inference mode
                 audio_b = audio.unsqueeze(0).to(device)
                 dist = vae_utils.encode_audio(audio_b)
-                x1   = dist.mode().clone().cpu()
+                # VAE outputs [B, latent_dim, T]; generator expects [B, T, latent_dim]
+                x1   = dist.mode().clone().transpose(1, 2).cpu()
 
                 # Text → CLIP features (reuse already-loaded CLIP from inference model)
                 text_clip = feature_utils_orig.encode_text_clip([prompt]).cpu()

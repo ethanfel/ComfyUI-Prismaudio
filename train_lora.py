@@ -139,7 +139,8 @@ def extract_audio_latent(audio: torch.Tensor, feature_utils, device, dtype) -> t
     """
     audio_b = audio.unsqueeze(0).to(device, dtype)  # [1, L]
     dist = feature_utils.encode_audio(audio_b)
-    return dist.mode().clone().cpu()                 # [1, seq_len, latent_dim]
+    # VAE outputs [B, latent_dim, T]; generator expects [B, T, latent_dim]
+    return dist.mode().clone().transpose(1, 2).cpu()  # [1, seq_len, latent_dim]
 
 
 # ---------------------------------------------------------------------------

@@ -68,6 +68,19 @@ def _apply_mask(frames, mask, source_fps, target_fps, mask_strength=1.0):
     return frames * alpha + 0.5 * (1.0 - alpha)
 
 
+def _resolve_named_path(cache_dir: str, name: str) -> str:
+    """Return cache_dir/name.npz, incrementing to name_001.npz etc. if the file already exists."""
+    base = os.path.join(cache_dir, f"{name}.npz")
+    if not os.path.exists(base):
+        return base
+    i = 1
+    while True:
+        p = os.path.join(cache_dir, f"{name}_{i:03d}.npz")
+        if not os.path.exists(p):
+            return p
+        i += 1
+
+
 def _hash_inputs(video_tensor, prompt, fps, duration, variant, mask=None,
                  mask_strength=1.0, mask_clip=True, mask_sync=True):
     h = hashlib.sha256()
@@ -116,6 +129,8 @@ class SelvaFeatureExtractor:
                                        "tooltip": "Clip duration in seconds. 0 = use the full video length. Clamped to actual video length if too long."}),
                 "cache_dir": ("STRING", {"default": "",
                                          "tooltip": "Where to store extracted feature files (.npz). Leave empty for the system temp directory. Reusing the same directory enables instant cache hits on re-runs."}),
+                "name": ("STRING", {"default": "",
+                                    "tooltip": "Optional filename for the saved .npz (without extension). If provided, features are always saved with this name instead of a content hash — useful for building a named training dataset. Auto-increments: dog_bark → dog_bark_001 → dog_bark_002 if the file already exists. Leave empty to use the default content-hash cache."}),
                 "mask": ("MASK", {
                     "tooltip": "Optional segmentation mask [T,H,W] float [0,1]. Background pixels are zeroed before encoding — useful when multiple objects compete for the same sound. Static (1-frame) or per-frame masks both supported. Connect SAM2 or Grounding DINO+SAM output.",
                 }),
@@ -146,7 +161,7 @@ class SelvaFeatureExtractor:
     DESCRIPTION = "Extracts CLIP visual features and text-conditioned sync features from a video. Results are cached — re-running with the same inputs is instant."
 
     def extract_features(self, model, video, prompt, video_info=None, fps=30.0,
-                         duration=0.0, cache_dir="", mask=None,
+                         duration=0.0, cache_dir="", name="", mask=None,
                          mask_strength=1.0, mask_clip=True, mask_sync=True):
         if video_info is not None:
             fps = video_info["loaded_fps"]
@@ -163,14 +178,19 @@ class SelvaFeatureExtractor:
         if not cache_dir:
             cache_dir = os.path.join(tempfile.gettempdir(), "selva_features")
         os.makedirs(cache_dir, exist_ok=True)
-        cache_key = _hash_inputs(video, prompt, fps, duration, model["variant"], mask=mask,
-                                 mask_strength=mask_strength, mask_clip=mask_clip, mask_sync=mask_sync)
-        cached_path = os.path.join(cache_dir, f"{cache_key}.npz")
 
-        if os.path.exists(cached_path):
-            print(f"[SelVA] Using cached features: {cached_path}", flush=True)
-            cached = _load_cached(cached_path)
-            return (cached, float(fps), cached.get("prompt", prompt))
+        if name.strip():
+            # Named mode: always extract and save to an incremented filename
+            cached_path = _resolve_named_path(cache_dir, name.strip())
+        else:
+            # Hash mode: skip extraction if identical inputs were already processed
+            cache_key = _hash_inputs(video, prompt, fps, duration, model["variant"], mask=mask,
+                                     mask_strength=mask_strength, mask_clip=mask_clip, mask_sync=mask_sync)
+            cached_path = os.path.join(cache_dir, f"{cache_key}.npz")
+            if os.path.exists(cached_path):
+                print(f"[SelVA] Using cached features: {cached_path}", flush=True)
+                cached = _load_cached(cached_path)
+                return (cached, float(fps), cached.get("prompt", prompt))
 
         device   = get_device()
         dtype    = model["dtype"]

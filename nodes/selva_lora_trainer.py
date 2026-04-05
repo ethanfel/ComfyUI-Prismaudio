@@ -540,7 +540,13 @@ class SelvaLoraTrainer:
             pbar_train.update(1)
 
         # Save inference adapter (state_dict + meta only — SelvaLoraLoader compatible)
+        # Increment filename if a previous final already exists (resume case)
         final_path = output_dir / "adapter_final.pt"
+        if final_path.exists():
+            i = 1
+            while (output_dir / f"adapter_final_{i:03d}.pt").exists():
+                i += 1
+            final_path = output_dir / f"adapter_final_{i:03d}.pt"
         torch.save({"state_dict": get_lora_state_dict(generator), "meta": meta}, final_path)
         (output_dir / "meta.json").write_text(json.dumps(meta, indent=2))
         print(f"\n[LoRA Trainer] Done. Adapter saved to {final_path}", flush=True)

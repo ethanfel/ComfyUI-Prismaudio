@@ -382,7 +382,13 @@ def main():
             print(f"[LoRA] Saved {ckpt_path}")
 
     # Save final adapter with embedded metadata
+    # Increment filename if a previous final already exists (resume case)
     final = output_dir / "adapter_final.pt"
+    if final.exists():
+        i = 1
+        while (output_dir / f"adapter_final_{i:03d}.pt").exists():
+            i += 1
+        final = output_dir / f"adapter_final_{i:03d}.pt"
     meta  = {
         "variant": args.variant,
         "rank":    args.rank,

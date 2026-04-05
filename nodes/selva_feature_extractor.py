@@ -70,6 +70,8 @@ def _apply_mask(frames, mask, source_fps, target_fps, mask_strength=1.0):
 
 def _resolve_named_path(cache_dir: str, name: str) -> str:
     """Return cache_dir/name.npz, incrementing to name_001.npz etc. if the file already exists."""
+    # Sanitize: replace path separators so the name stays inside cache_dir
+    name = name.replace("/", "_").replace("\\", "_").replace("\x00", "_")
     base = os.path.join(cache_dir, f"{name}.npz")
     if not os.path.exists(base):
         return base

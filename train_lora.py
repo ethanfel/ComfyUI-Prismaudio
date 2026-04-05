@@ -264,13 +264,9 @@ def main():
             print(f"  [LoRA] Warning: no audio file found for {npz_path.name} — skipping")
             continue
 
+        bundle = load_npz(npz_path)
         # Prompt priority: prompts.txt override > embedded in .npz > directory name
-        prompt = prompt_map.get(npz_path.name)
-        if prompt is None:
-            bundle = load_npz(npz_path)
-            prompt = bundle.get("prompt", default_prompt)
-        else:
-            bundle = load_npz(npz_path)
+        prompt = prompt_map.get(npz_path.name, bundle.get("prompt", default_prompt))
 
         print(f"  {npz_path.name} + {audio_path.name}: '{prompt}'")
 

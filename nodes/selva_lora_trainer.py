@@ -489,7 +489,7 @@ class SelvaLoraTrainer:
                 # Live preview: send updated loss curve to ComfyUI frontend
                 preview_img = _draw_loss_curve(loss_history, log_interval, start_step)
                 pbar_train.update_absolute(
-                    step - start_step, remaining, ("JPEG", preview_img, 85)
+                    step - start_step, remaining, ("JPEG", preview_img, 800)
                 )
 
             if step % save_every == 0 or step == steps:

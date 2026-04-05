@@ -35,13 +35,14 @@ def _resize_frames(frames, size):
     return x.clamp(0.0, 1.0)  # [N, C, H, W]
 
 
-def _compute_mask_bbox(mask, frame_h, frame_w, margin=0.1):
+def _compute_mask_bbox(mask, frame_h, frame_w, margin=0.1, square=True):
     """
-    Compute a square bounding box around the union of all mask frames.
+    Compute a bounding box around the union of all mask frames.
 
-    mask:    [M, H', W'] float [0,1]
-    Returns (y0, x0, y1, x1) in pixel coords relative to (frame_h, frame_w).
-    Falls back to a center square crop if the mask is empty.
+    mask:   [M, H', W'] float [0,1]
+    square: if True, expand bbox to a square and shift into frame bounds;
+            if False, apply margin independently on each axis (rect crop).
+    Returns (y0, x0, y1, x1) in pixel coords clamped to (frame_h, frame_w).
     """
     if mask.shape[1] != frame_h or mask.shape[2] != frame_w:
         m = F.interpolate(
@@ -53,36 +54,45 @@ def _compute_mask_bbox(mask, frame_h, frame_w, margin=0.1):
     union = (m > 0.5).max(dim=0).values  # [H, W] bool
 
     if not union.any():
-        # Empty mask — center square crop
-        side = min(frame_h, frame_w)
-        cy, cx = frame_h // 2, frame_w // 2
-        y0 = max(0, cy - side // 2)
-        x0 = max(0, cx - side // 2)
-        return y0, x0, min(frame_h, y0 + side), min(frame_w, x0 + side)
+        if square:
+            # Empty mask — center square crop
+            side = min(frame_h, frame_w)
+            cy, cx = frame_h // 2, frame_w // 2
+            y0 = max(0, cy - side // 2)
+            x0 = max(0, cx - side // 2)
+            return y0, x0, min(frame_h, y0 + side), min(frame_w, x0 + side)
+        else:
+            # Empty mask — return full frame (no meaningful rect to crop to)
+            return 0, 0, frame_h, frame_w
 
     ys = union.any(dim=1).nonzero(as_tuple=True)[0]
     xs = union.any(dim=0).nonzero(as_tuple=True)[0]
     y0, y1 = int(ys[0]), int(ys[-1]) + 1
     x0, x1 = int(xs[0]), int(xs[-1]) + 1
 
-    side = max(y1 - y0, x1 - x0)
-    pad  = int(side * margin)
-    side += 2 * pad
+    if square:
+        side = max(y1 - y0, x1 - x0)
+        pad  = int(side * margin)
+        side += 2 * pad
 
-    cy = (y0 + y1) // 2
-    cx = (x0 + x1) // 2
-    y0n = cy - side // 2
-    x0n = cx - side // 2
-    y1n = y0n + side
-    x1n = x0n + side
+        cy = (y0 + y1) // 2
+        cx = (x0 + x1) // 2
+        y0n = cy - side // 2
+        x0n = cx - side // 2
+        y1n = y0n + side
+        x1n = x0n + side
 
-    # Shift into frame bounds to preserve square shape
-    if y0n < 0:        y1n -= y0n;           y0n = 0
-    if y1n > frame_h:  y0n -= y1n - frame_h; y1n = frame_h
-    if x0n < 0:        x1n -= x0n;           x0n = 0
-    if x1n > frame_w:  x0n -= x1n - frame_w; x1n = frame_w
+        # Shift into frame bounds to preserve square shape
+        if y0n < 0:        y1n -= y0n;           y0n = 0
+        if y1n > frame_h:  y0n -= y1n - frame_h; y1n = frame_h
+        if x0n < 0:        x1n -= x0n;           x0n = 0
+        if x1n > frame_w:  x0n -= x1n - frame_w; x1n = frame_w
 
-    return max(0, int(y0n)), max(0, int(x0n)), min(frame_h, int(y1n)), min(frame_w, int(x1n))
+        return max(0, int(y0n)), max(0, int(x0n)), min(frame_h, int(y1n)), min(frame_w, int(x1n))
+    else:
+        pad_y = int(max(1, y1 - y0) * margin)
+        pad_x = int(max(1, x1 - x0) * margin)
+        return max(0, y0 - pad_y), max(0, x0 - pad_x), min(frame_h, y1 + pad_y), min(frame_w, x1 + pad_x)
 
 
 def _apply_mask(frames, mask, source_fps, target_fps, mask_strength=1.0):
@@ -120,7 +130,7 @@ def _apply_mask(frames, mask, source_fps, target_fps, mask_strength=1.0):
 
 def _hash_inputs(video_tensor, prompt, fps, duration, variant, mask=None,
                  mask_strength=1.0, mask_clip=True, mask_sync=True,
-                 crop_to_mask=False, crop_margin=0.1):
+                 crop_to_mask=False, crop_rect=False, crop_margin=0.1):
     h = hashlib.sha256()
     raw = video_tensor.cpu().numpy().tobytes()
     n = len(raw)
@@ -139,7 +149,8 @@ def _hash_inputs(video_tensor, prompt, fps, duration, variant, mask=None,
         h.update(str(mask_clip).encode())
         h.update(str(mask_sync).encode())
         h.update(str(crop_to_mask).encode())
-        if crop_to_mask:
+        h.update(str(crop_rect).encode())
+        if crop_to_mask or crop_rect:
             h.update(str(round(crop_margin, 4)).encode())
     h.update(prompt.encode())
     h.update(str(fps).encode())
@@ -187,11 +198,15 @@ class SelvaFeatureExtractor:
                 }),
                 "crop_to_mask": ("BOOLEAN", {
                     "default": False,
-                    "tooltip": "Experimental. When enabled, crops frames to a square region around the mask bounding box before resizing, instead of squishing the full frame. Requires mask. Combine with mask_clip/mask_sync for full isolation.",
+                    "tooltip": "Experimental. Crops frames to a square region around the mask bounding box before resizing. The model sees an undistorted view of the subject. Requires mask. Takes priority over crop_rect.",
+                }),
+                "crop_rect": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Experimental. Crops frames to a rectangle around the mask bounding box (with margin) before resizing. The model still stretches the crop to a square, but only sees the region around the target element. Simpler than crop_to_mask. Requires mask.",
                 }),
                 "crop_margin": ("FLOAT", {
                     "default": 0.1, "min": 0.0, "max": 1.0, "step": 0.05,
-                    "tooltip": "Fraction of the bounding box side to add as padding around the crop. 0.1 = 10% margin on each side.",
+                    "tooltip": "Margin added around the bounding box as a fraction of the bbox size. Shared by crop_to_mask and crop_rect. 0.1 = 10% on each side.",
                 }),
             },
         }
@@ -210,7 +225,7 @@ class SelvaFeatureExtractor:
     def extract_features(self, model, video, prompt, video_info=None, fps=30.0,
                          duration=0.0, cache_dir="", mask=None,
                          mask_strength=1.0, mask_clip=True, mask_sync=True,
-                         crop_to_mask=False, crop_margin=0.1):
+                         crop_to_mask=False, crop_rect=False, crop_margin=0.1):
         if video_info is not None:
             fps = video_info["loaded_fps"]
 
@@ -228,7 +243,7 @@ class SelvaFeatureExtractor:
         os.makedirs(cache_dir, exist_ok=True)
         cache_key = _hash_inputs(video, prompt, fps, duration, model["variant"], mask=mask,
                                  mask_strength=mask_strength, mask_clip=mask_clip, mask_sync=mask_sync,
-                                 crop_to_mask=crop_to_mask, crop_margin=crop_margin)
+                                 crop_to_mask=crop_to_mask, crop_rect=crop_rect, crop_margin=crop_margin)
         cached_path = os.path.join(cache_dir, f"{cache_key}.npz")
 
         if os.path.exists(cached_path):
@@ -252,11 +267,13 @@ class SelvaFeatureExtractor:
 
         # Pre-compute crop bbox once from the original-resolution mask
         crop_bbox = None
-        if mask is not None and crop_to_mask:
+        if mask is not None and (crop_to_mask or crop_rect):
             H_vid, W_vid = video.shape[1], video.shape[2]
-            crop_bbox = _compute_mask_bbox(mask, H_vid, W_vid, crop_margin)
+            _square = crop_to_mask  # crop_to_mask takes priority; crop_rect is rect-only
+            crop_bbox = _compute_mask_bbox(mask, H_vid, W_vid, crop_margin, square=_square)
             cy0, cx0, cy1, cx1 = crop_bbox
-            print(f"[SelVA]   Mask crop: y={cy0}:{cy1} x={cx0}:{cx1} "
+            _mode = "square" if _square else "rect"
+            print(f"[SelVA]   Mask crop ({_mode}): y={cy0}:{cy1} x={cx0}:{cx1} "
                   f"({cy1-cy0}×{cx1-cx0}px from {H_vid}×{W_vid})", flush=True)
 
         try:

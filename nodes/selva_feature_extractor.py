@@ -184,7 +184,7 @@ class SelvaFeatureExtractor:
             std  = _SYNC_STD.to(sync_frames.device)
             sync_frames = (sync_frames - mean) / std
             sync_input  = sync_frames.unsqueeze(0).to(device, dtype)          # [1, N, C, 224, 224]
-            print(f"[SelVA]   Sync frames: {sync_frames.shape[0]} @ {_SYNC_FPS}fps → 224px", flush=True)
+            print(f"[SelVA]   Sync frames: {sync_frames.shape[0]} @ {_SYNC_FPS}fps → 224px {'(masked)' if mask is not None else ''}", flush=True)
 
             # Encode T5 text + prepend supplementary tokens → text-conditioned sync features
             text_f, text_mask = feature_utils.encode_text_t5([prompt])           # [1, L, D], [1, L]

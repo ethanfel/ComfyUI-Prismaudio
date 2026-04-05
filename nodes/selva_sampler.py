@@ -143,10 +143,16 @@ class SelvaSampler:
         print(f"[SelVA] latent stats: mean={x1.float().mean():.4f} std={x1.float().std():.4f}", flush=True)
 
         # Decode: latent → mel → audio
-        with torch.no_grad():
-            x1_unnorm = net_generator.unnormalize(x1)
-            spec  = feature_utils.decode(x1_unnorm)    # latent → mel spectrogram
-            audio = feature_utils.vocode(spec)          # mel → waveform
+        try:
+            with torch.no_grad():
+                x1_unnorm = net_generator.unnormalize(x1)
+                spec  = feature_utils.decode(x1_unnorm)    # latent → mel spectrogram
+                audio = feature_utils.vocode(spec)          # mel → waveform
+        except torch.cuda.OutOfMemoryError:
+            raise RuntimeError(
+                "[SelVA] CUDA out of memory during decode/vocode. Try switching offload_strategy "
+                "to 'offload_to_cpu', using a smaller variant, or reducing duration."
+            )
 
         if strategy == "offload_to_cpu":
             net_generator.to(get_offload_device())

@@ -395,13 +395,17 @@ class SelvaLoraScheduler:
                 duration          = time.monotonic() - t_start
                 loss_history      = r["loss_history"]
                 grad_norm_history = r.get("grad_norm_history", [])
+                run_start_step    = r.get("start_step", 0)
                 smoothed          = _smooth_losses(loss_history) if loss_history else []
 
                 # Scalar summary metrics
                 final_loss    = round(smoothed[-1], 6) if smoothed else None
                 min_loss      = round(min(smoothed), 6) if smoothed else None
                 min_idx       = smoothed.index(min(smoothed)) if smoothed else None
-                min_loss_step = (min_idx + 1) * log_interval if min_idx is not None else None
+                min_loss_step = (
+                    run_start_step + (min_idx + 1) * log_interval
+                    if min_idx is not None else None
+                )
 
                 # Stability: std-dev of raw loss over last 25% of steps
                 if loss_history:
@@ -418,7 +422,7 @@ class SelvaLoraScheduler:
                     "min_loss_step":        min_loss_step,
                     "loss_std_last_quarter": loss_std_last_quarter,
                     "loss_at_steps":        _loss_at_steps(
-                        loss_history, log_interval, save_every, 0, steps
+                        loss_history, log_interval, save_every, run_start_step, steps
                     ),
                     "loss_history":         [round(v, 6) for v in loss_history],
                     "grad_norm_history":    grad_norm_history,

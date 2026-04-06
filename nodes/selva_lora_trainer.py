@@ -549,6 +549,12 @@ class SelvaLoraTrainer:
 
         log_interval = 50
         remaining    = steps - start_step
+        if remaining < log_interval:
+            raise ValueError(
+                f"[LoRA Trainer] Only {remaining} steps remaining (steps={steps}, "
+                f"start_step={start_step}). Need at least {log_interval} steps to "
+                "record any loss — increase 'steps' or lower the resume checkpoint."
+            )
         pbar_train   = comfy.utils.ProgressBar(remaining)
         loss_history     = []
         running_loss     = 0.0
@@ -621,13 +627,20 @@ class SelvaLoraTrainer:
                     optimizer.zero_grad()
 
                 if step % log_interval == 0:
-                    avg       = running_loss / log_interval
-                    avg_gnorm = running_grad_norm / max(1, grad_norm_count)
+                    avg = running_loss / log_interval
                     loss_history.append(avg)
-                    grad_norm_history.append(round(avg_gnorm, 6))
+                    # grad_norm_count can be 0 when grad_accum > log_interval
+                    # (no optimizer step fired in this interval yet)
+                    if grad_norm_count > 0:
+                        avg_gnorm = running_grad_norm / grad_norm_count
+                        grad_norm_history.append(round(avg_gnorm, 6))
+                        gnorm_str = f"  grad_norm={avg_gnorm:.4f}"
+                    else:
+                        grad_norm_history.append(None)
+                        gnorm_str = ""
                     lr_now = scheduler.get_last_lr()[0]
                     print(f"[LoRA Trainer] step {step:5d}/{steps}  "
-                          f"loss={avg:.4f}  grad_norm={avg_gnorm:.4f}  "
+                          f"loss={avg:.4f}{gnorm_str}  "
                           f"lr={lr_now:.2e}  bs={batch_size}", flush=True)
                     running_loss      = 0.0
                     running_grad_norm = 0.0
@@ -705,11 +718,12 @@ class SelvaLoraTrainer:
 
         loss_curve = _pil_to_tensor(smoothed_img)
         return {
-            "patched_model":    patched,
-            "adapter_path":     str(final_path),
-            "loss_curve":       loss_curve,
-            "loss_history":     loss_history,
+            "patched_model":     patched,
+            "adapter_path":      str(final_path),
+            "loss_curve":        loss_curve,
+            "loss_history":      loss_history,
             "grad_norm_history": grad_norm_history,
-            "meta":             meta,
-            "completed":        True,
+            "start_step":        start_step,
+            "meta":              meta,
+            "completed":         True,
         }

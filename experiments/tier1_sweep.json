@@ -1,0 +1,56 @@
+{
+  "name": "tier1_sweep",
+  "description": "Ablation of Tier 1 improvements: LoRA+, dropout, curriculum sampling. Baseline = uniform, no regularisation.",
+  "data_dir": "dataset/my_sound",
+  "output_root": "lora_sweeps/tier1_sweep",
+  "base": {
+    "steps": 2000,
+    "rank": 16,
+    "alpha": 0.0,
+    "lr": 1e-4,
+    "batch_size": 16,
+    "warmup_steps": 100,
+    "grad_accum": 1,
+    "save_every": 500,
+    "seed": 42,
+    "target": "attn.qkv",
+    "timestep_mode": "uniform",
+    "logit_normal_sigma": 1.0,
+    "curriculum_switch": 0.6,
+    "lora_dropout": 0.0,
+    "lora_plus_ratio": 1.0
+  },
+  "experiments": [
+    {
+      "id": "baseline",
+      "description": "Standard LoRA — no Tier 1 changes. Reference point."
+    },
+    {
+      "id": "lora_plus_16",
+      "description": "LoRA+ only: lr_B = 16 * lr_A. Should converge faster in early steps.",
+      "lora_plus_ratio": 16.0
+    },
+    {
+      "id": "dropout_0.05",
+      "description": "LoRA dropout 0.05 only. Light regularisation for 10-clip dataset.",
+      "lora_dropout": 0.05
+    },
+    {
+      "id": "dropout_0.1",
+      "description": "LoRA dropout 0.1 only. Stronger regularisation — may prevent overfitting past step 2000.",
+      "lora_dropout": 0.1
+    },
+    {
+      "id": "curriculum",
+      "description": "Curriculum sampling only: logit_normal for steps 1-1200, then uniform. Should improve convergence vs pure uniform.",
+      "timestep_mode": "curriculum"
+    },
+    {
+      "id": "full_tier1",
+      "description": "All Tier 1 combined: LoRA+ + dropout 0.05 + curriculum.",
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    }
+  ]
+}

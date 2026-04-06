@@ -157,8 +157,11 @@ The script will:
 | `--resume` | `None` | Path to a step checkpoint to resume from (e.g. `lora_output/adapter_step04000.pt`) |
 | `--precision` | `bf16` | Mixed precision: `bf16`, `fp16`, `fp32` |
 | `--seed` | `42` | Random seed |
-| `--timestep_mode` | `logit_normal` | Timestep sampling: `logit_normal` (recommended) or `uniform` |
-| `--logit_normal_sigma` | `1.0` | Spread of the logit-normal distribution. Only used with `logit_normal` |
+| `--timestep_mode` | `uniform` | Timestep sampling: `uniform`, `logit_normal`, or `curriculum` |
+| `--logit_normal_sigma` | `1.0` | Spread of the logit-normal distribution. Only used with `logit_normal` / `curriculum` |
+| `--curriculum_switch` | `0.6` | Fraction of steps to use logit_normal before switching to uniform. Only with `curriculum` |
+| `--lora_dropout` | `0.0` | Dropout on the LoRA path only. `0.05`–`0.1` helps regularize on small datasets |
+| `--lora_plus_ratio` | `1.0` | LoRA+ LR ratio: `lr_B = lr × ratio`. `1.0` = standard LoRA, `16.0` = LoRA+ |
 
 ---
 
@@ -275,19 +278,48 @@ Only add `linear1` once you have 150+ clips — it doubles the adapted parameter
 
 ### Timestep sampling mode
 
-The default `logit_normal` mode samples training timesteps from a bell-shaped distribution centered at t=0.5 (via `sigmoid(N(0, σ))`). This gives more training budget to the middle of the noise schedule — the semantically rich region where the model learns what the sound should sound like — while still covering the full range.
+Controls how training timesteps are sampled at each step.
 
-The alternative `uniform` mode samples all timesteps equally. This is mathematically valid but undertrains the high-t region (t > 0.8), which is where final audio quality is determined. Undertraining there leaves residual noise that is then amplified by CFG at inference.
+`uniform` (default) samples all timesteps equally — equivalent to original MMAudio training.
+
+`logit_normal` concentrates more steps near t=0.5 via `sigmoid(N(0, σ))`. This is the semantically rich mid-noise region. Consistently reaches a lower loss floor but the perceptual improvement on small datasets is marginal.
+
+`curriculum` uses logit_normal for the first `curriculum_switch` fraction of steps (default 60%), then switches to uniform for the remainder. The motivation: logit_normal accelerates early structure learning but undertrains the high-t boundary region; uniform then fills in the fine detail. A switch message is logged when the transition happens.
 
 | Mode | When to use |
 |---|---|
-| `logit_normal` (default, σ=1.0) | Recommended for all cases — reduces white noise artifacts |
-| `uniform` | Baseline / comparison; equivalent to original MMAudio training |
+| `uniform` (default) | Baseline — safe, equivalent to original training |
+| `logit_normal` | When you want a lower loss floor; marginal on small datasets |
+| `curriculum` | Experimental — may improve convergence quality on small datasets |
 
-The `logit_normal_sigma` parameter controls the width of the distribution:
+The `logit_normal_sigma` parameter controls the width of the logit-normal distribution (used by both `logit_normal` and the first phase of `curriculum`):
 - σ=1.0: moderate peak at t=0.5, balanced coverage (default)
 - σ=0.5: sharper peak, less coverage of extremes
 - σ=2.0: broader, approaches uniform
+
+### LoRA dropout
+
+`lora_dropout` applies dropout to the input of the LoRA path (not the frozen base linear). It regularizes the low-rank update without disturbing pretrained weights — helpful on small datasets where the LoRA would otherwise overfit to the training clips.
+
+| Value | Use case |
+|---|---|
+| `0.0` (default) | No regularization — fine for 30+ clips |
+| `0.05` | Light regularization — recommended starting point on 10–20 clips |
+| `0.1` | Stronger regularization — use if loss plateaus but audio is still noisy |
+
+Dropout is not saved in the adapter file — it only affects training. Loading the adapter at inference does not require setting dropout.
+
+### LoRA+ (asymmetric learning rate)
+
+`lora_plus_ratio` splits the learning rate between LoRA A and B matrices: `lr_B = lr × ratio`. The B matrix is the output-side projection and benefits from a higher LR. Setting ratio to 16 enables the LoRA+ scheme from arXiv:2402.12354.
+
+| Ratio | Effect |
+|---|---|
+| `1.0` (default) | Standard LoRA — identical A and B learning rates |
+| `4.0` | Mild asymmetry |
+| `16.0` | LoRA+ — faster convergence, especially on early steps |
+
+LoRA+ is orthogonal to dropout and curriculum sampling — all three can be combined.
 
 ### Adapter strength at inference
 

@@ -64,7 +64,9 @@ This is not a quality difference per se; flow matching is simply more efficient.
 
 AudioX benchmarks claim superior results on text-to-audio (AudioCaps) and text-to-music
 (MusicCaps) vs prior models. Video-to-audio comparison against MMAudio specifically is not
-prominently featured in the paper, which suggests SelVA remains competitive there.
+prominently featured in the paper. Perceptual evaluation confirms this: AudioX does not sound
+noticeably better than SelVA on video-to-audio tasks. AudioX's advantage is **breadth**
+(music, inpainting, variable duration), not raw video-to-audio quality.
 
 ---
 

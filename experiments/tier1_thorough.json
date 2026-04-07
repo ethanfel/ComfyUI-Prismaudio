@@ -98,6 +98,47 @@
       "lora_plus_ratio": 16.0,
       "lora_dropout": 0.05,
       "timestep_mode": "curriculum"
+    },
+
+    {
+      "id": "g5_lr_low",
+      "group": "lr",
+      "description": "LR=3e-5 — 3× lower than baseline. Tests if 1e-4 is overshooting.",
+      "lr": 3e-5
+    },
+    {
+      "id": "g5_lr_high",
+      "group": "lr",
+      "description": "LR=3e-4 — 3× higher than baseline. Tests if 1e-4 is too conservative.",
+      "lr": 3e-4
+    },
+
+    {
+      "id": "g6_target_full_r16",
+      "group": "target",
+      "description": "Rank 16 targeting attn.qkv + linear1 (FFN projections). Doubles LoRA coverage.",
+      "target": "attn.qkv linear1"
+    },
+    {
+      "id": "g6_target_full_r64",
+      "group": "target",
+      "description": "Rank 64 + alpha=32 targeting attn.qkv + linear1. Maximum coverage + expressiveness.",
+      "rank": 64,
+      "alpha": 32.0,
+      "target": "attn.qkv linear1"
+    },
+
+    {
+      "id": "g4_full_r64_6k",
+      "group": "combined",
+      "description": "All Tier 1 at rank 64 + alpha=32, extended to 6000 steps. Checks if convergence is done at 4000.",
+      "rank": 64,
+      "alpha": 32.0,
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum",
+      "steps": 6000,
+      "save_every": 1000
     }
   ]
 }

@@ -296,20 +296,50 @@ class SelvaLoraScheduler:
         dataset = _prepare_dataset(model, data_dir, device)
 
         # ------------------------------------------------------------------
-        # 4. Build the summary skeleton (written incrementally)
+        # 4. Build or restore the summary (resume-aware)
         # ------------------------------------------------------------------
-        summary = {
-            "sweep_name":   sweep_name,
-            "description":  description,
-            "sweep_file":   str(exp_path),
-            "started_at":   datetime.now(timezone.utc).isoformat(),
-            "completed_at": None,
-            "system":       _get_system_info(),
-            "data_dir":     str(data_dir),
-            "n_clips":      n_clips,
-            "experiments":  [],
-        }
-        summary_path = output_root / "experiment_summary.json"
+        summary_path   = output_root / "experiment_summary.json"
+        completed_ids  = set()
+        all_curve_data = []   # collected for comparison image
+
+        if summary_path.exists():
+            try:
+                existing = json.loads(summary_path.read_text(encoding="utf-8"))
+                for rec in existing.get("experiments", []):
+                    if rec.get("results", {}).get("status") == "completed":
+                        completed_ids.add(rec["id"])
+                        lh = rec["results"].get("loss_history", [])
+                        all_curve_data.append({
+                            "id":           rec["id"],
+                            "loss_history": lh,
+                            "log_interval": rec["results"].get("log_interval", 50),
+                            "start_step":   0,
+                        })
+                # Restore the original summary, clear completed_at so it gets set again
+                summary = existing
+                summary["completed_at"] = None
+                if completed_ids:
+                    print(f"[LoRA Scheduler] Resuming — skipping {len(completed_ids)} "
+                          f"completed experiment(s): {sorted(completed_ids)}", flush=True)
+            except Exception as e:
+                print(f"[LoRA Scheduler] Could not read existing summary ({e}) — starting fresh",
+                      flush=True)
+                completed_ids = set()
+                all_curve_data = []
+                summary = None
+
+        if not completed_ids:
+            summary = {
+                "sweep_name":   sweep_name,
+                "description":  description,
+                "sweep_file":   str(exp_path),
+                "started_at":   datetime.now(timezone.utc).isoformat(),
+                "completed_at": None,
+                "system":       _get_system_info(),
+                "data_dir":     str(data_dir),
+                "n_clips":      n_clips,
+                "experiments":  [],
+            }
 
         def _write_summary():
             summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -319,10 +349,9 @@ class SelvaLoraScheduler:
         # ------------------------------------------------------------------
         # 5. Run each experiment
         # ------------------------------------------------------------------
-        trainer       = SelvaLoraTrainer()
-        pbar_outer    = comfy.utils.ProgressBar(len(spec["experiments"]))
-        all_curve_data = []   # collected for comparison image
-        log_interval   = 50   # matches _train_inner
+        trainer      = SelvaLoraTrainer()
+        pbar_outer   = comfy.utils.ProgressBar(len(spec["experiments"]))
+        log_interval = 50   # matches _train_inner
 
         feature_utils_orig = model["feature_utils"]
         seq_cfg            = model["seq_cfg"]
@@ -332,6 +361,11 @@ class SelvaLoraScheduler:
         for exp in spec["experiments"]:
             exp_id  = exp["id"]
             exp_desc = exp.get("description", "")
+
+            if exp_id in completed_ids:
+                print(f"[LoRA Scheduler] Skipping '{exp_id}' (already completed)", flush=True)
+                pbar_outer.update(1)
+                continue
             cfg     = _merge_config(base_cfg, exp)
 
             # Required training params

@@ -1,10 +1,10 @@
 {
   "name": "tier1_sweep",
   "description": "Ablation of Tier 1 improvements: LoRA+, dropout, curriculum sampling. Baseline = uniform, no regularisation.",
-  "data_dir": "dataset/my_sound",
+  "data_dir": "/media/unraid/davinci/Selva/BJ",
   "output_root": "lora_sweeps/tier1_sweep",
   "base": {
-    "steps": 2000,
+    "steps": 4000,
     "rank": 16,
     "alpha": 0.0,
     "lr": 1e-4,
@@ -32,7 +32,7 @@
     },
     {
       "id": "dropout_0.05",
-      "description": "LoRA dropout 0.05 only. Light regularisation for 10-clip dataset.",
+      "description": "LoRA dropout 0.05 only. Light regularisation for 49-clip dataset.",
       "lora_dropout": 0.05
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "id": "curriculum",
-      "description": "Curriculum sampling only: logit_normal for steps 1-1200, then uniform. Should improve convergence vs pure uniform.",
+      "description": "Curriculum sampling only: logit_normal for steps 1-2400, then uniform. Should improve convergence vs pure uniform.",
       "timestep_mode": "curriculum"
     },
     {
@@ -51,6 +51,11 @@
       "lora_plus_ratio": 16.0,
       "lora_dropout": 0.05,
       "timestep_mode": "curriculum"
+    },
+    {
+      "id": "rank_64",
+      "description": "Rank 64 baseline — MMAudio LoRA guide default. More expressive adapter for 49-clip dataset.",
+      "rank": 64
     }
   ]
 }

@@ -1,0 +1,103 @@
+{
+  "name": "tier1_thorough",
+  "description": "Full overnight Tier 1 ablation on 49-clip BJ dataset. 4 groups: rank, alpha, regularisation, and best combinations. ~10-12h depending on GPU.",
+  "data_dir": "/media/unraid/davinci/Selva/BJ",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/tier1_thorough",
+  "base": {
+    "steps": 4000,
+    "rank": 16,
+    "alpha": 0.0,
+    "lr": 1e-4,
+    "batch_size": 16,
+    "warmup_steps": 100,
+    "grad_accum": 1,
+    "save_every": 1000,
+    "seed": 42,
+    "target": "attn.qkv",
+    "timestep_mode": "uniform",
+    "logit_normal_sigma": 1.0,
+    "curriculum_switch": 0.6,
+    "lora_dropout": 0.0,
+    "lora_plus_ratio": 1.0
+  },
+  "experiments": [
+    {
+      "id": "g1_rank_16",
+      "group": "rank",
+      "description": "Rank 16 baseline — reference point for all groups."
+    },
+    {
+      "id": "g1_rank_32",
+      "group": "rank",
+      "description": "Rank 32 — midpoint. Does doubling rank improve quality without overfitting?",
+      "rank": 32
+    },
+    {
+      "id": "g1_rank_64",
+      "group": "rank",
+      "description": "Rank 64 — MMAudio LoRA guide default. Maximum expressiveness at 49 clips.",
+      "rank": 64
+    },
+    {
+      "id": "g2_alpha_half_r16",
+      "group": "alpha",
+      "description": "Alpha=8 with rank 16 (scale=0.5). Reduces intruder singular dimensions (arXiv:2410.21228).",
+      "alpha": 8.0
+    },
+    {
+      "id": "g2_alpha_half_r64",
+      "group": "alpha",
+      "description": "Alpha=32 with rank 64 (scale=0.5). Best-practice scaling for high-rank adapters.",
+      "rank": 64,
+      "alpha": 32.0
+    },
+    {
+      "id": "g3_lora_plus_4",
+      "group": "regularisation",
+      "description": "LoRA+ ratio=4 — conservative asymmetric LR. Lower bound for the technique.",
+      "lora_plus_ratio": 4.0
+    },
+    {
+      "id": "g3_lora_plus_16",
+      "group": "regularisation",
+      "description": "LoRA+ ratio=16 — standard from FLUX LoRA literature. Faster early convergence.",
+      "lora_plus_ratio": 16.0
+    },
+    {
+      "id": "g3_dropout_0.05",
+      "group": "regularisation",
+      "description": "LoRA dropout 0.05 only. Light sparsity regularisation (arXiv:2404.09610).",
+      "lora_dropout": 0.05
+    },
+    {
+      "id": "g3_dropout_0.1",
+      "group": "regularisation",
+      "description": "LoRA dropout 0.1 only. Stronger regularisation — may prevent overfitting past step 2000.",
+      "lora_dropout": 0.1
+    },
+    {
+      "id": "g3_curriculum",
+      "group": "regularisation",
+      "description": "Curriculum sampling only: logit_normal steps 1-2400, then uniform (arXiv:2603.12517).",
+      "timestep_mode": "curriculum"
+    },
+    {
+      "id": "g4_full_r16",
+      "group": "combined",
+      "description": "All Tier 1 at rank 16: LoRA+ 16 + dropout 0.05 + curriculum.",
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    },
+    {
+      "id": "g4_full_r64",
+      "group": "combined",
+      "description": "All Tier 1 at rank 64 + alpha=32. Best expressiveness + best regularisation.",
+      "rank": 64,
+      "alpha": 32.0,
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    }
+  ]
+}

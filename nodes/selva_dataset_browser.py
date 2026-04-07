@@ -43,9 +43,9 @@ class SelvaDatasetBrowser:
     RETURN_NAMES  = ("video_path", "audio_wav", "audio_flac", "features_path", "frames_dir", "mask_dir", "label", "max_index")
     OUTPUT_TOOLTIPS = (
         "path + '.mp4'",
-        "path + '.wav'",
-        "path + '.flac'",
-        "path + '.npz'  (pre-extracted SelVA features)",
+        "features/ + name + '.wav'",
+        "features/ + name + '.flac'",
+        "features/ + name + '.npz'  (pre-extracted SelVA features)",
         "path  (image-sequence directory)",
         "path + '_mask'  (mask image-sequence directory)",
         "Text label for this clip",
@@ -76,11 +76,18 @@ class SelvaDatasetBrowser:
             raise ValueError(f"[SelVA Dataset Browser] Expected a non-empty JSON array in {p}")
 
         count = len(data)
-        index = max(0, min(index, count - 1))   # clamp silently
+        if index >= count:
+            raise IndexError(
+                f"[SelVA Dataset Browser] index {index} is out of range "
+                f"(dataset has {count} entries, last index is {count - 1})"
+            )
         entry = data[index]
 
         base  = entry["path"]
         label = entry.get("label", "")
+
+        p_base    = Path(base)
+        feat_base = str(p_base.parent / "features" / p_base.name)
 
         print(
             f"[SelVA Dataset Browser] {index + 1}/{count}  label='{label}'  base={base}",
@@ -89,9 +96,9 @@ class SelvaDatasetBrowser:
 
         return (
             base + ".mp4",
-            base + ".wav",
-            base + ".flac",
-            base + ".npz",
+            feat_base + ".wav",
+            feat_base + ".flac",
+            feat_base + ".npz",
             base,
             base + "_mask",
             label,

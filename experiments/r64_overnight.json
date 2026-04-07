@@ -1,0 +1,130 @@
+{
+  "name": "r64_overnight",
+  "description": "Focused rank-64 overnight sweep. All experiments use rank 64 as base — confirmed best from tier1_thorough early results. 8000 steps to reach convergence (none converged at 4000).",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/r64_overnight",
+  "base": {
+    "steps": 8000,
+    "rank": 64,
+    "alpha": 0.0,
+    "lr": 1e-4,
+    "batch_size": 16,
+    "warmup_steps": 200,
+    "grad_accum": 1,
+    "save_every": 2000,
+    "seed": 42,
+    "target": "attn.qkv",
+    "timestep_mode": "uniform",
+    "logit_normal_sigma": 1.0,
+    "curriculum_switch": 0.6,
+    "lora_dropout": 0.0,
+    "lora_plus_ratio": 1.0
+  },
+  "experiments": [
+
+    {
+      "id": "g1_r64_baseline",
+      "group": "rank",
+      "description": "Rank 64 baseline — clean reference at 8000 steps."
+    },
+    {
+      "id": "g1_r128_baseline",
+      "group": "rank",
+      "description": "Rank 128 — 102GB VRAM makes this free. Does doubling rank from 64 help further?",
+      "rank": 128
+    },
+
+    {
+      "id": "g2_r64_alpha_32",
+      "group": "alpha",
+      "description": "Rank 64 alpha=32 (scale=0.5). Reduces intruder singular dimensions (arXiv:2410.21228).",
+      "alpha": 32.0
+    },
+    {
+      "id": "g2_r64_alpha_16",
+      "group": "alpha",
+      "description": "Rank 64 alpha=16 (scale=0.25). More aggressive scale reduction — may over-constrain.",
+      "alpha": 16.0
+    },
+
+    {
+      "id": "g3_r64_lora_plus",
+      "group": "regularisation",
+      "description": "LoRA+ ratio=16. lr_B = 16 × lr_A. Faster convergence at constant step budget.",
+      "lora_plus_ratio": 16.0
+    },
+    {
+      "id": "g3_r64_dropout_0.05",
+      "group": "regularisation",
+      "description": "Dropout=0.05. Light sparsity regularisation on LoRA path.",
+      "lora_dropout": 0.05
+    },
+    {
+      "id": "g3_r64_dropout_0.1",
+      "group": "regularisation",
+      "description": "Dropout=0.1. Stronger regularisation — tests if 49 clips needs heavier constraint.",
+      "lora_dropout": 0.1
+    },
+    {
+      "id": "g3_r64_curriculum",
+      "group": "regularisation",
+      "description": "Curriculum sampling: logit_normal for steps 1-4800, then uniform (arXiv:2603.12517).",
+      "timestep_mode": "curriculum"
+    },
+
+    {
+      "id": "g4_r64_lr_low",
+      "group": "lr",
+      "description": "LR=3e-5. 3× lower — checks if 1e-4 is overshooting at rank 64.",
+      "lr": 3e-5
+    },
+    {
+      "id": "g4_r64_lr_high",
+      "group": "lr",
+      "description": "LR=3e-4. 3× higher — may converge faster but risk instability.",
+      "lr": 3e-4
+    },
+
+    {
+      "id": "g5_r64_target_full",
+      "group": "target",
+      "description": "Rank 64 targeting attn.qkv + linear1 (FFN projections). Doubles LoRA coverage.",
+      "target": "attn.qkv linear1"
+    },
+    {
+      "id": "g5_r128_target_full",
+      "group": "target",
+      "description": "Rank 128 + full target. Maximum possible coverage with available VRAM.",
+      "rank": 128,
+      "target": "attn.qkv linear1"
+    },
+
+    {
+      "id": "g6_r64_full_tier1",
+      "group": "combined",
+      "description": "All Tier 1 at rank 64: LoRA+ 16 + dropout 0.05 + curriculum. Full stack at 8000 steps.",
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    },
+    {
+      "id": "g6_r64_alpha32_full",
+      "group": "combined",
+      "description": "Rank 64 alpha=32 + all Tier 1. Best alpha scaling + best regularisation stack.",
+      "alpha": 32.0,
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    },
+    {
+      "id": "g6_r128_full_tier1",
+      "group": "combined",
+      "description": "Rank 128 + all Tier 1. Tests if more capacity + regularisation beats rank 64 full.",
+      "rank": 128,
+      "lora_plus_ratio": 16.0,
+      "lora_dropout": 0.05,
+      "timestep_mode": "curriculum"
+    }
+
+  ]
+}

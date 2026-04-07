@@ -1,7 +1,7 @@
 {
   "name": "tier1_thorough",
   "description": "Full overnight Tier 1 ablation on 49-clip BJ dataset. 4 groups: rank, alpha, regularisation, and best combinations. ~10-12h depending on GPU.",
-  "data_dir": "/media/unraid/davinci/Selva/BJ",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
   "output_root": "/media/unraid/davinci/Selva/BJ/experiment/tier1_thorough",
   "base": {
     "steps": 4000,

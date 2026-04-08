@@ -22,8 +22,9 @@ class SelvaBigvganLoader:
     RETURN_NAMES  = ("model",)
     OUTPUT_TOOLTIPS = ("SELVA_MODEL with the fine-tuned BigVGAN vocoder injected.",)
     DESCRIPTION = (
-        "Loads a fine-tuned BigVGAN vocoder checkpoint from SelVA BigVGAN Trainer "
-        "and replaces the vocoder weights in the SELVA_MODEL. "
+        "Loads a fine-tuned BigVGAN/BigVGANv2 vocoder checkpoint from SelVA BigVGAN Trainer "
+        "and replaces the vocoder weights in the SELVA_MODEL in-place. "
+        "Supports both 16k and 44k models. "
         "Connect the output to SelVA Sampler instead of the base model loader."
     )
 
@@ -47,16 +48,18 @@ class SelvaBigvganLoader:
         if not p.exists():
             raise FileNotFoundError(f"[BigVGAN] Checkpoint not found: {p}")
 
-        if model["mode"] != "16k":
-            raise NotImplementedError(
-                "[BigVGAN] Fine-tuned loader only supports 16k mode."
-            )
-
         ckpt = torch.load(str(p), map_location="cpu", weights_only=False)
         if "generator" not in ckpt:
             raise ValueError(f"[BigVGAN] Expected {{'generator': ...}} in checkpoint, got keys: {list(ckpt.keys())}")
 
-        vocoder = model["feature_utils"].tod.vocoder.vocoder
+        mode = model["mode"]
+        if mode == "16k":
+            vocoder = model["feature_utils"].tod.vocoder.vocoder  # BigVGANVocoder
+        elif mode == "44k":
+            vocoder = model["feature_utils"].tod.vocoder           # BigVGANv2 directly
+        else:
+            raise ValueError(f"[BigVGAN] Unknown mode: {mode}")
+
         vocoder.load_state_dict(ckpt["generator"])
         vocoder.eval()
 

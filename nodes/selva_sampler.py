@@ -39,6 +39,10 @@ class SelvaSampler:
                     "default": -27.0, "min": -40.0, "max": -6.0, "step": 1.0,
                     "tooltip": "Target RMS level in dBFS when normalize=True. -27 matches the measured RMS of LUFS-normalized training clips. Increase toward -20 for louder output.",
                 }),
+                "textual_inversion": ("TEXTUAL_INVERSION", {
+                    "tooltip": "Learned token embeddings from SelVA Textual Inversion Loader. "
+                               "Injects style tokens into CLIP conditioning without modifying model weights.",
+                }),
             },
         }
 
@@ -49,7 +53,7 @@ class SelvaSampler:
     CATEGORY = SELVA_CATEGORY
     DESCRIPTION = "Generates audio from video features using SelVA's flow matching ODE. Supports text prompts and negative prompts via classifier-free guidance."
 
-    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True, target_lufs=-27.0):
+    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True, target_lufs=-27.0, textual_inversion=None):
         import dataclasses
         from selva_core.model.flow_matching import FlowMatching
 
@@ -113,6 +117,18 @@ class SelvaSampler:
                 # Encode negative prompt (or use empty conditions)
                 neg_text_clip = feature_utils.encode_text_clip([negative_prompt]) \
                     if negative_prompt.strip() else None
+
+                # Inject textual inversion tokens into last K positions of CLIP embedding
+                if textual_inversion is not None:
+                    emb = textual_inversion["embeddings"].to(device, dtype)  # [K, 1024]
+                    K = emb.shape[0]
+                    text_clip = text_clip.clone()
+                    text_clip[:, -K:, :] = emb.unsqueeze(0)
+                    if neg_text_clip is not None:
+                        neg_text_clip = neg_text_clip.clone()
+                        neg_text_clip[:, -K:, :] = emb.unsqueeze(0)
+                    print(f"[SelVA] Textual inversion: injected {K} tokens into CLIP conditioning",
+                          flush=True)
 
                 conditions = net_generator.preprocess_conditions(clip_f, sync_f, text_clip)
                 empty_conditions = net_generator.get_empty_conditions(

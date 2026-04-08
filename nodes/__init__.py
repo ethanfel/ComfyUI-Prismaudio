@@ -14,6 +14,8 @@ _NODES = {
     "SelvaVaeRoundtrip":     (".selva_vae_roundtrip",     "SelvaVaeRoundtrip",     "SelVA VAE Roundtrip"),
     "SelvaHfSmoother":       (".selva_audio_preprocessors", "SelvaHfSmoother",       "SelVA HF Smoother"),
     "SelvaSpectralMatcher":  (".selva_audio_preprocessors", "SelvaSpectralMatcher",  "SelVA Spectral Matcher"),
+    "SelvaTextualInversionTrainer": (".selva_textual_inversion_trainer", "SelvaTextualInversionTrainer", "SelVA Textual Inversion Trainer"),
+    "SelvaTextualInversionLoader":  (".selva_textual_inversion_loader",  "SelvaTextualInversionLoader",  "SelVA Textual Inversion Loader"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

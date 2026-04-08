@@ -1,0 +1,77 @@
+{
+  "name": "alpha_scale_sweep",
+  "description": "Fix LoRA noise contamination (flatness 0.013→0.094 at alpha=rank). Root cause: alpha=rank (scale=1.0) at high rank drowns base model priors. Testing dramatically lower alpha to nudge rather than overwrite. All runs at lr=3e-4 (best stable LR from r128_sweet_spot).",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/alpha_scale_sweep",
+  "base": {
+    "steps": 6000,
+    "lr": 3e-4,
+    "batch_size": 16,
+    "warmup_steps": 200,
+    "grad_accum": 1,
+    "save_every": 2000,
+    "seed": 42,
+    "target": "attn.qkv",
+    "timestep_mode": "uniform",
+    "logit_normal_sigma": 1.0,
+    "curriculum_switch": 0.6,
+    "lora_dropout": 0.0,
+    "lora_plus_ratio": 1.0,
+    "lr_schedule": "constant"
+  },
+  "experiments": [
+
+    {
+      "id": "g1_r16_alpha4",
+      "group": "conservative",
+      "description": "Back to basics: rank=16 alpha=4 (scale=0.25). Small adapter, gentle scale — cleanest possible LoRA signal.",
+      "rank": 16,
+      "alpha": 4.0
+    },
+    {
+      "id": "g1_r16_alpha16",
+      "group": "conservative",
+      "description": "rank=16 alpha=16 (scale=1.0) — the original default. Reference point: is the noise issue rank-specific or universal?",
+      "rank": 16,
+      "alpha": 16.0
+    },
+
+    {
+      "id": "g2_r32_alpha8",
+      "group": "mid",
+      "description": "rank=32 alpha=8 (scale=0.25). More capacity than r16 but still gentle scale.",
+      "rank": 32,
+      "alpha": 8.0
+    },
+    {
+      "id": "g2_r32_alpha32",
+      "group": "mid",
+      "description": "rank=32 alpha=32 (scale=1.0). Same rank, full scale — isolates whether scale or rank is causing noise.",
+      "rank": 32,
+      "alpha": 32.0
+    },
+
+    {
+      "id": "g3_r128_alpha8",
+      "group": "high_rank_low_alpha",
+      "description": "rank=128 alpha=8 (scale=0.0625). High capacity, very gentle contribution — can r128 stay clean at low alpha?",
+      "rank": 128,
+      "alpha": 8.0
+    },
+    {
+      "id": "g3_r128_alpha16",
+      "group": "high_rank_low_alpha",
+      "description": "rank=128 alpha=16 (scale=0.125). Slightly more signal than alpha=8.",
+      "rank": 128,
+      "alpha": 16.0
+    },
+    {
+      "id": "g3_r128_alpha32",
+      "group": "high_rank_low_alpha",
+      "description": "rank=128 alpha=32 (scale=0.25). Same scale as r16_alpha4 and r32_alpha8 — comparable contribution across ranks.",
+      "rank": 128,
+      "alpha": 32.0
+    }
+
+  ]
+}

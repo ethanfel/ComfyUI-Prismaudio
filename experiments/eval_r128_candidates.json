@@ -1,0 +1,39 @@
+{
+  "name": "eval_r128_candidates",
+  "description": "Top candidates from r128_sweet_spot. Comparing the two lowest-loss runs, the stable lr=3e-4, and the curriculum run that hit 0.161 before regressing. Baseline included as perceptual reference.",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_dir": "/media/unraid/davinci/Selva/BJ/evals/r128_candidates",
+  "steps": 25,
+  "seed": 42,
+  "adapters": [
+    {
+      "id": "baseline",
+      "description": "No LoRA — base model output for perceptual reference"
+    },
+    {
+      "id": "lr_5e4_r128",
+      "description": "Best loss overall (0.137), still descending at step 10k",
+      "path": "/media/unraid/davinci/Selva/BJ/experiment/r128_sweet_spot/g1_r128_lr_5e4/adapter_final.pt"
+    },
+    {
+      "id": "lr_3e4_r256",
+      "description": "Tied with lr_5e4 at 0.139, higher rank — does extra capacity help perceptually?",
+      "path": "/media/unraid/davinci/Selva/BJ/experiment/r128_sweet_spot/g4_r256_lr_3e4/adapter_final.pt"
+    },
+    {
+      "id": "lr_3e4_r128",
+      "description": "Stable plateau from step 4k to 10k (0.221) — visually confirmed clean spectrograms",
+      "path": "/media/unraid/davinci/Selva/BJ/experiment/r128_sweet_spot/g1_r128_lr_3e4/adapter_final.pt"
+    },
+    {
+      "id": "curriculum_lr_3e4",
+      "description": "Best min loss of all (0.161 at step 6k), regressed to 0.193 after curriculum switch — curious if the early checkpoint sounds better",
+      "path": "/media/unraid/davinci/Selva/BJ/experiment/r128_sweet_spot/g2_r128_lr_3e4_curriculum/adapter_final.pt"
+    },
+    {
+      "id": "curriculum_lr_3e4_step6000",
+      "description": "Same run at its actual best step (before regression) — compare against adapter_final to hear the regression",
+      "path": "/media/unraid/davinci/Selva/BJ/experiment/r128_sweet_spot/g2_r128_lr_3e4_curriculum/adapter_step06000.pt"
+    }
+  ]
+}

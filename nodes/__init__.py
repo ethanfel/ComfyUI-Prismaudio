@@ -16,6 +16,7 @@ _NODES = {
     "SelvaSpectralMatcher":  (".selva_audio_preprocessors", "SelvaSpectralMatcher",  "SelVA Spectral Matcher"),
     "SelvaTextualInversionTrainer": (".selva_textual_inversion_trainer", "SelvaTextualInversionTrainer", "SelVA Textual Inversion Trainer"),
     "SelvaTextualInversionLoader":  (".selva_textual_inversion_loader",  "SelvaTextualInversionLoader",  "SelVA Textual Inversion Loader"),
+    "SelvaTiScheduler":             (".selva_ti_scheduler",              "SelvaTiScheduler",              "SelVA TI Scheduler"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

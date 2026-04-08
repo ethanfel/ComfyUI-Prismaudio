@@ -201,13 +201,14 @@ class SelvaTextualInversionTrainer:
 
         # Training must run outside inference_mode so autograd works
         with torch.inference_mode(False), torch.enable_grad():
-            return self._train_inner(
+            r = self._train_inner(
                 model, dataset, feature_utils_orig, seq_cfg,
                 device, dtype, mode,
                 data_dir, out_path,
                 n_tokens, steps, lr, batch_size,
                 warmup_steps, seed, save_every, init_text,
             )
+        return (r["embeddings_path"],)
 
     def _train_inner(
         self, model, dataset, feature_utils_orig, seq_cfg,
@@ -368,4 +369,7 @@ class SelvaTextualInversionTrainer:
         print(f"\n[TI Trainer] Done. Saved: {out_path}", flush=True)
 
         soft_empty_cache()
-        return (str(out_path),)
+        return {
+            "embeddings_path": str(out_path),
+            "loss_history":    loss_history,
+        }

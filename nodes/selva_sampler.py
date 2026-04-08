@@ -33,7 +33,11 @@ class SelvaSampler:
             "optional": {
                 "normalize": ("BOOLEAN", {
                     "default": True,
-                    "tooltip": "Peak-normalize output to [-1, 1]. Disable to preserve the raw decoder output level.",
+                    "tooltip": "Normalize output level. Uses RMS normalization to target_lufs rather than peak normalization, so level matches typical audio content.",
+                }),
+                "target_lufs": ("FLOAT", {
+                    "default": -20.0, "min": -40.0, "max": -6.0, "step": 1.0,
+                    "tooltip": "Target RMS level in dBFS when normalize=True. -20 matches typical processed audio. Increase toward -14 for louder output, decrease toward -30 for quieter.",
                 }),
             },
         }
@@ -45,7 +49,7 @@ class SelvaSampler:
     CATEGORY = SELVA_CATEGORY
     DESCRIPTION = "Generates audio from video features using SelVA's flow matching ODE. Supports text prompts and negative prompts via classifier-free guidance."
 
-    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True):
+    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True, target_lufs=-20.0):
         import dataclasses
         from selva_core.model.flow_matching import FlowMatching
 
@@ -168,8 +172,9 @@ class SelvaSampler:
             audio = audio.mean(dim=1, keepdim=True)  # stereo → mono
 
         if normalize:
-            peak = audio.abs().max().clamp(min=1e-8)
-            audio = (audio / peak).clamp(-1, 1)
+            target_rms = 10 ** (target_lufs / 20.0)
+            rms = audio.pow(2).mean().sqrt().clamp(min=1e-8)
+            audio = (audio * (target_rms / rms)).clamp(-1, 1)
         print(f"[SelVA] audio: shape={tuple(audio.shape)} sr={sample_rate}", flush=True)
 
         return ({"waveform": audio.cpu(), "sample_rate": sample_rate},)

@@ -44,6 +44,11 @@ class SelvaSampler:
                     "tooltip": "Learned token embeddings from SelVA Textual Inversion Loader. "
                                "Injects style tokens into CLIP conditioning without modifying model weights.",
                 }),
+                "ti_strength": ("FLOAT", {
+                    "default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05,
+                    "tooltip": "Blends between original CLIP conditioning (0.0) and full TI injection (1.0). "
+                               "Reduce toward 0.3–0.5 if TI produces buzz artifacts.",
+                }),
             },
         }
 
@@ -54,7 +59,7 @@ class SelvaSampler:
     CATEGORY = SELVA_CATEGORY
     DESCRIPTION = "Generates audio from video features using SelVA's flow matching ODE. Supports text prompts and negative prompts via classifier-free guidance."
 
-    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True, target_lufs=-27.0, textual_inversion=None):
+    def generate(self, model, features, prompt, negative_prompt, duration, steps, cfg_strength, seed, normalize=True, target_lufs=-27.0, textual_inversion=None, ti_strength=1.0):
         import dataclasses
         from selva_core.model.flow_matching import FlowMatching
 
@@ -124,10 +129,12 @@ class SelvaSampler:
                     emb         = textual_inversion["embeddings"].to(device, dtype)  # [K, 1024]
                     K           = emb.shape[0]
                     inject_mode = textual_inversion.get("inject_mode", "suffix")
-                    text_clip   = _inject_tokens(text_clip, emb, K, inject_mode)
+                    ti_text     = _inject_tokens(text_clip, emb, K, inject_mode)
+                    text_clip   = torch.lerp(text_clip, ti_text, ti_strength)
                     if neg_text_clip is not None:
-                        neg_text_clip = _inject_tokens(neg_text_clip, emb, K, inject_mode)
-                    print(f"[SelVA] Textual inversion: {K} tokens  mode={inject_mode}",
+                        ti_neg    = _inject_tokens(neg_text_clip, emb, K, inject_mode)
+                        neg_text_clip = torch.lerp(neg_text_clip, ti_neg, ti_strength)
+                    print(f"[SelVA] Textual inversion: {K} tokens  mode={inject_mode}  strength={ti_strength}",
                           flush=True)
 
                 conditions = net_generator.preprocess_conditions(clip_f, sync_f, text_clip)

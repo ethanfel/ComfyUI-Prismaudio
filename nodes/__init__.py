@@ -12,6 +12,8 @@ _NODES = {
     "SelvaSkipExperiment":   (".selva_skip_experiment",   "SelvaSkipExperiment",   "SelVA Skip Experiment"),
     "SelvaLoraEvaluator":    (".selva_lora_evaluator",    "SelvaLoraEvaluator",    "SelVA LoRA Evaluator"),
     "SelvaVaeRoundtrip":     (".selva_vae_roundtrip",     "SelvaVaeRoundtrip",     "SelVA VAE Roundtrip"),
+    "SelvaHfSmoother":       (".selva_audio_preprocessors", "SelvaHfSmoother",       "SelVA HF Smoother"),
+    "SelvaSpectralMatcher":  (".selva_audio_preprocessors", "SelvaSpectralMatcher",  "SelVA Spectral Matcher"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

@@ -78,6 +78,7 @@ _PARAM_DEFAULTS = {
     "curriculum_switch":   0.6,
     "lora_dropout":        0.0,
     "lora_plus_ratio":     1.0,
+    "lr_schedule":         "constant",
 }
 
 # Palette for comparison chart: one color per experiment (cycles if > 8)
@@ -386,6 +387,7 @@ class SelvaLoraScheduler:
             curr_switch = float(cfg.get("curriculum_switch",  0.6))
             dropout     = float(cfg.get("lora_dropout",       0.0))
             plus_ratio  = float(cfg.get("lora_plus_ratio",    1.0))
+            lr_schedule = str(cfg.get("lr_schedule",          "constant"))
             alpha_val   = alpha if alpha > 0.0 else float(rank)
             target_suffixes = tuple(target.strip().split())
 
@@ -407,6 +409,7 @@ class SelvaLoraScheduler:
                     "timestep_mode": ts_mode, "logit_normal_sigma": ln_sigma,
                     "curriculum_switch": curr_switch,
                     "lora_dropout": dropout, "lora_plus_ratio": plus_ratio,
+                    "lr_schedule": lr_schedule,
                 },
                 "results":     {"status": "running"},
                 "adapter_path": None,
@@ -425,6 +428,7 @@ class SelvaLoraScheduler:
                         alpha_val, target_suffixes, batch_size, warmup,
                         grad_accum, save_every, resume_path, seed,
                         ts_mode, ln_sigma, curr_switch, dropout, plus_ratio,
+                        lr_schedule,
                     )
 
                 duration          = time.monotonic() - t_start

@@ -82,6 +82,21 @@
       "description": "Rank 256 + LR=3e-4. Best rank + best LR candidate combined.",
       "rank": 256,
       "lr": 3e-4
+    },
+
+    {
+      "id": "g5_r128_lr_2e4_cosine",
+      "group": "cosine",
+      "description": "LR=2e-4 + cosine decay. Fixes the oscillation observed at step 6000–8000 by decaying LR to ~0 instead of staying flat.",
+      "lr": 2e-4,
+      "lr_schedule": "cosine"
+    },
+    {
+      "id": "g5_r128_lr_3e4_cosine",
+      "group": "cosine",
+      "description": "LR=3e-4 + cosine decay. Higher LR with decay — should reach lower loss faster then lock in.",
+      "lr": 3e-4,
+      "lr_schedule": "cosine"
     }
 
   ]

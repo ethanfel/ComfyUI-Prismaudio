@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 import random
 import traceback
 from pathlib import Path
@@ -528,6 +529,13 @@ class SelvaLoraTrainer:
                     "tooltip": "LoRA+ LR ratio: lr_B = lr × ratio. "
                                "1.0 = standard LoRA. 16.0 = LoRA+ (arXiv:2402.12354).",
                 }),
+                "lr_schedule": (["constant", "cosine"], {
+                    "default": "constant",
+                    "tooltip": "LR schedule after warmup. "
+                               "constant: flat LR for all steps. "
+                               "cosine: decay from lr to ~0 following a cosine curve — "
+                               "prevents oscillation when LR is slightly too high.",
+                }),
             },
         }
 
@@ -551,7 +559,7 @@ class SelvaLoraTrainer:
               alpha=0.0, target="attn.qkv", batch_size=4, warmup_steps=100,
               grad_accum=1, save_every=500, resume_path="", seed=42,
               timestep_mode="uniform", logit_normal_sigma=1.0, curriculum_switch=0.6,
-              lora_dropout=0.0, lora_plus_ratio=1.0):
+              lora_dropout=0.0, lora_plus_ratio=1.0, lr_schedule="constant"):
 
         torch.manual_seed(seed)
         random.seed(seed)
@@ -601,7 +609,7 @@ class SelvaLoraTrainer:
                 alpha_val, target_suffixes, batch_size, warmup_steps,
                 grad_accum, save_every, resume_path, seed,
                 timestep_mode, logit_normal_sigma, curriculum_switch,
-                lora_dropout, lora_plus_ratio,
+                lora_dropout, lora_plus_ratio, lr_schedule,
             )
             return (r["patched_model"], r["adapter_path"], r["loss_curve"])
 
@@ -612,7 +620,7 @@ class SelvaLoraTrainer:
         alpha_val, target_suffixes, batch_size, warmup_steps,
         grad_accum, save_every, resume_path, seed,
         timestep_mode="uniform", logit_normal_sigma=1.0, curriculum_switch=0.6,
-        lora_dropout=0.0, lora_plus_ratio=1.0,
+        lora_dropout=0.0, lora_plus_ratio=1.0, lr_schedule="constant",
     ):
         # --- Prepare generator copy with LoRA ---
         generator = copy.deepcopy(model["generator"]).to(device, dtype)
@@ -648,8 +656,16 @@ class SelvaLoraTrainer:
         if lora_plus_ratio != 1.0:
             print(f"[LoRA Trainer] LoRA+: lr_A={lr:.2e}  lr_B={lr * lora_plus_ratio:.2e}", flush=True)
 
-        def lr_lambda(s):
-            return s / max(1, warmup_steps) if s < warmup_steps else 1.0
+        if lr_schedule == "cosine":
+            def lr_lambda(s):
+                if s < warmup_steps:
+                    return s / max(1, warmup_steps)
+                progress = (s - warmup_steps) / max(1, steps - warmup_steps)
+                return max(1e-6 / lr, 0.5 * (1.0 + math.cos(math.pi * progress)))
+            print(f"[LoRA Trainer] LR schedule: cosine decay {lr:.2e} → 0", flush=True)
+        else:
+            def lr_lambda(s):
+                return s / max(1, warmup_steps) if s < warmup_steps else 1.0
 
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
         fm = FlowMatching(min_sigma=0, inference_mode="euler", num_steps=25)
@@ -701,6 +717,7 @@ class SelvaLoraTrainer:
             "curriculum_switch":   curriculum_switch,
             "lora_dropout":        lora_dropout,
             "lora_plus_ratio":     lora_plus_ratio,
+            "lr_schedule":         lr_schedule,
         }
 
         # For curriculum mode: compute the step at which we switch from logit_normal to uniform

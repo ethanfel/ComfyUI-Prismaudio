@@ -1,0 +1,64 @@
+{
+  "name": "ti_sweep_1",
+  "description": "First TI sweep: token count, learning rate, and warm init. All generator weights frozen throughout. Baseline = n_tokens=4, lr=1e-3, random init. Primary goal: find a working (n_tokens, lr) pair before optimising further.",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/ti_sweep_1",
+  "base": {
+    "steps": 3000,
+    "batch_size": 16,
+    "warmup_steps": 100,
+    "save_every": 1000,
+    "seed": 42,
+    "init_text": "",
+    "lr": 1e-3,
+    "n_tokens": 4
+  },
+  "experiments": [
+
+    {
+      "id": "n4_baseline",
+      "group": "token_count",
+      "description": "4 tokens, lr=1e-3, random init. Primary reference point — all other experiments are measured against this."
+    },
+    {
+      "id": "n8",
+      "group": "token_count",
+      "description": "8 tokens, lr=1e-3, random init. Double the capacity — does it capture more style or just overfit faster?",
+      "n_tokens": 8
+    },
+    {
+      "id": "n16",
+      "group": "token_count",
+      "description": "16 tokens, lr=1e-3, random init. Maximum expressiveness — worth the extra convergence difficulty?",
+      "n_tokens": 16
+    },
+
+    {
+      "id": "lr_5e4",
+      "group": "learning_rate",
+      "description": "n_tokens=4, lr=5e-4. Half the default LR — smoother convergence, possibly better generalisation.",
+      "lr": 5e-4
+    },
+    {
+      "id": "lr_2e3",
+      "group": "learning_rate",
+      "description": "n_tokens=4, lr=2e-3. Double the default LR — faster early convergence, risk of oscillation.",
+      "lr": 2e-3
+    },
+
+    {
+      "id": "n4_warm",
+      "group": "warm_init",
+      "description": "4 tokens warm-started from 'mechanical impact sound design'. CLIP embedding initialises tokens in a semantically relevant region of the space — may converge faster and to a better style representation.",
+      "init_text": "mechanical impact sound design"
+    },
+    {
+      "id": "n8_warm",
+      "group": "warm_init",
+      "description": "8 tokens warm-started from 'mechanical impact sound design'. Combines the warm-init advantage with more expressive capacity.",
+      "n_tokens": 8,
+      "init_text": "mechanical impact sound design"
+    }
+
+  ]
+}

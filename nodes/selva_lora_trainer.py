@@ -93,17 +93,16 @@ def _load_npz(path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 def _eval_sample(generator, feature_utils_orig, dataset, seq_cfg, device, dtype,
-                 num_steps: int = 25, seed: int = 42):
-    """Run a quick no-CFG inference pass on a fixed training clip.
+                 num_steps: int = 25, seed: int = 42, clip_idx: int = 0):
+    """Run a quick no-CFG inference pass on a training clip.
 
-    Always uses dataset[0] and a fixed noise seed so samples across checkpoints
+    Uses dataset[clip_idx] and a fixed noise seed so samples across checkpoints
     are directly comparable — you can hear the model improve step by step.
     Returns (waveform [1, L] float32 cpu, sample_rate) or (None, None) on failure.
-    Uses fewer ODE steps than inference (8 vs 25) for speed.
     """
     generator.eval()
     try:
-        _, clip_f_cpu, sync_f_cpu, text_clip_cpu = dataset[0]
+        _, clip_f_cpu, sync_f_cpu, text_clip_cpu = dataset[clip_idx]
         clip_f    = clip_f_cpu.to(device, dtype)
         sync_f    = sync_f_cpu.to(device, dtype)
         text_clip = text_clip_cpu.to(device, dtype)

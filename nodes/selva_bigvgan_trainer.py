@@ -22,6 +22,23 @@ import folder_paths
 
 from .utils import SELVA_CATEGORY, get_device, soft_empty_cache
 
+def _load_wav(path):
+    """Load audio file to [channels, samples] float32 tensor.
+
+    Tries torchaudio first; falls back to soundfile for wav/flac when the
+    ffmpeg/torchcodec backend is unavailable (e.g. libavutil soname mismatch).
+    """
+    try:
+        return torchaudio.load(str(path))
+    except Exception:
+        pass
+    # soundfile fallback — handles wav, flac, ogg natively without ffmpeg
+    import soundfile as sf
+    data, sr = sf.read(str(path), dtype="float32", always_2d=True)
+    wav = torch.from_numpy(data.T)  # [channels, samples]
+    return wav, sr
+
+
 # Multi-resolution STFT windows — same three resolutions as BigVGAN discriminator config.
 _STFT_RESOLUTIONS = [
     (1024, 120,  600),
@@ -143,7 +160,7 @@ class SelvaBigvganTrainer:
         clips = []
         for af in audio_files:
             try:
-                wav, sr = torchaudio.load(str(af))
+                wav, sr = _load_wav(af)
                 if wav.shape[0] > 1:
                     wav = wav.mean(0, keepdim=True)
                 if sr != sample_rate:

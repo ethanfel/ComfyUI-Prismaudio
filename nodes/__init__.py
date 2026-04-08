@@ -16,7 +16,9 @@ _NODES = {
     "SelvaSpectralMatcher":  (".selva_audio_preprocessors", "SelvaSpectralMatcher",  "SelVA Spectral Matcher"),
     "SelvaTextualInversionTrainer": (".selva_textual_inversion_trainer", "SelvaTextualInversionTrainer", "SelVA Textual Inversion Trainer"),
     "SelvaTextualInversionLoader":  (".selva_textual_inversion_loader",  "SelvaTextualInversionLoader",  "SelVA Textual Inversion Loader"),
-    "SelvaTiScheduler":             (".selva_ti_scheduler",              "SelvaTiScheduler",              "SelVA TI Scheduler"),
+    "SelvaTiScheduler":                      (".selva_ti_scheduler",                      "SelvaTiScheduler",                      "SelVA TI Scheduler"),
+    "SelvaActivationSteeringExtractor":      (".selva_activation_steering_extractor",      "SelvaActivationSteeringExtractor",      "SelVA Activation Steering Extractor"),
+    "SelvaActivationSteeringLoader":         (".selva_activation_steering_loader",         "SelvaActivationSteeringLoader",         "SelVA Activation Steering Loader"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

@@ -820,6 +820,22 @@ class SelvaBigvganTrainer:
                             "files with matching audio files."
                         )
 
+                # Offload heavy SelVA components to CPU — only vocoder + mel_converter
+                # are needed for training. CLIP, synchformer, T5, generator sit on
+                # GPU doing nothing and eat tens of GiB otherwise.
+                for attr in ("clip_model", "synchformer", "text_encoder_t5"):
+                    sub = getattr(feature_utils, attr, None)
+                    if sub is not None:
+                        sub.to("cpu")
+                if "generator" in model:
+                    model["generator"].to("cpu")
+                # tod contains VAE + vocoder; VAE not needed but vocoder is a
+                # submodule we're about to train — move just the VAE part.
+                tod = feature_utils.tod
+                if hasattr(tod, "vae"):
+                    tod.vae.to("cpu")
+                soft_empty_cache()
+
                 _result[0] = _do_train(
                     vocoder, mel_converter, clips,
                     device, dtype, strategy, feature_utils,

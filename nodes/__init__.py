@@ -27,6 +27,7 @@ _NODES = {
     "SelvaDatasetLUFSNormalizer":  (".selva_dataset_pipeline", "SelvaDatasetLUFSNormalizer",  "SelVA Dataset LUFS Normalizer"),
     "SelvaDatasetInspector":       (".selva_dataset_pipeline", "SelvaDatasetInspector",       "SelVA Dataset Inspector"),
     "SelvaDatasetItemExtractor":   (".selva_dataset_pipeline", "SelvaDatasetItemExtractor",   "SelVA Dataset Item Extractor"),
+    "SelvaDatasetSaver":           (".selva_dataset_pipeline", "SelvaDatasetSaver",           "SelVA Dataset Saver"),
 }
 
 for key, (module_path, class_name, display_name) in _NODES.items():

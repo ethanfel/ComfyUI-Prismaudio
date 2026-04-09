@@ -361,3 +361,88 @@ class SelvaDatasetItemExtractor:
             flush=True,
         )
         return (audio, item["name"], len(dataset))
+
+
+class SelvaDatasetSaver:
+    """Save all clips in an AUDIO_DATASET to disk as FLAC files.
+
+    Optionally copies matching .npz feature files from a source directory,
+    keeping FLAC/NPZ pairs in sync after the inspector has filtered clips.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "dataset": (AUDIO_DATASET,),
+                "output_dir": ("STRING", {
+                    "default": "",
+                    "tooltip": "Absolute path to output folder. Created if it does not exist.",
+                }),
+            },
+            "optional": {
+                "npz_source_dir": ("STRING", {
+                    "default": "",
+                    "tooltip": "If set, copies {name}.npz from this folder alongside each saved FLAC. "
+                               "Missing NPZs are warned but do not abort the save.",
+                }),
+            },
+        }
+
+    RETURN_TYPES  = ("STRING",)
+    RETURN_NAMES  = ("report",)
+    OUTPUT_NODE   = True
+    FUNCTION      = "save"
+    CATEGORY      = SELVA_CATEGORY
+    DESCRIPTION   = (
+        "Save every clip in an AUDIO_DATASET to output_dir as FLAC. "
+        "If npz_source_dir is provided, copies the matching .npz file for each clip — "
+        "so rejected clips never get their NPZ copied."
+    )
+
+    def save(self, dataset, output_dir: str, npz_source_dir: str = ""):
+        import shutil
+        import soundfile as sf
+
+        out = Path(output_dir.strip())
+        out.mkdir(parents=True, exist_ok=True)
+
+        npz_src = Path(npz_source_dir.strip()) if npz_source_dir.strip() else None
+
+        saved = 0
+        npz_copied = 0
+        npz_missing = []
+
+        for item in dataset:
+            name   = item["name"]
+            wav    = item["waveform"][0]          # [C, L]
+            sr     = item["sample_rate"]
+
+            # soundfile wants [L] mono or [L, C] multichannel, float32
+            wav_np = wav.permute(1, 0).float().numpy()   # [L, C]
+            if wav_np.shape[1] == 1:
+                wav_np = wav_np[:, 0]                    # [L] mono
+
+            flac_path = out / f"{name}.flac"
+            sf.write(str(flac_path), wav_np, sr, subtype="PCM_24")
+            saved += 1
+
+            if npz_src is not None:
+                npz_path = npz_src / f"{name}.npz"
+                if npz_path.exists():
+                    shutil.copy2(str(npz_path), str(out / f"{name}.npz"))
+                    npz_copied += 1
+                else:
+                    npz_missing.append(name)
+
+        lines = [
+            f"[DatasetSaver] Saved {saved} clips → {out}",
+        ]
+        if npz_src is not None:
+            lines.append(f"  NPZ copied: {npz_copied}  missing: {len(npz_missing)}")
+            for n in npz_missing:
+                lines.append(f"    MISSING NPZ: {n}")
+
+        report = "\n".join(lines)
+        print(report, flush=True)
+        return (report,)

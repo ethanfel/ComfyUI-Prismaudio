@@ -203,7 +203,7 @@ class SelvaDittoOptimizer:
 
         ref_mels = []
         with torch.no_grad():
-            for rf in ref_files[:32]:  # cap at 32 for speed
+            for rf in ref_files:
                 try:
                     wav, sr = _load_wav(rf)
                     if wav.shape[0] > 1:

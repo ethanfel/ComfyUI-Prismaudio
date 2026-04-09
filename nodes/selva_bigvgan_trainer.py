@@ -307,14 +307,19 @@ def _do_train(vocoder, mel_converter, clips,
 
             if step == 0:
                 print(f"[BigVGAN DEBUG] inference_mode={torch.is_inference_mode_enabled()}", flush=True)
-                print(f"[BigVGAN DEBUG] clips[0].is_inference()={clips[0].is_inference()}", flush=True)
-                print(f"[BigVGAN DEBUG] mel_basis.is_inference()={mel_converter.mel_basis.is_inference()}", flush=True)
-                print(f"[BigVGAN DEBUG] target_flat.is_inference()={target_flat.is_inference()}", flush=True)
-                print(f"[BigVGAN DEBUG] target_mel.is_inference()={target_mel.is_inference()}", flush=True)
                 cp = vocoder.conv_pre
+                print(f"[BigVGAN DEBUG] conv_pre._parameters keys={list(cp._parameters.keys())}", flush=True)
+                for k, v in cp._parameters.items():
+                    if v is not None:
+                        print(f"[BigVGAN DEBUG]   _parameters[{k!r}].is_inference()={v.is_inference()}", flush=True)
+                has_p = hasattr(cp, 'parametrizations')
+                print(f"[BigVGAN DEBUG] has parametrizations={has_p}", flush=True)
+                if has_p:
+                    for attr, plist in cp.parametrizations.items():
+                        print(f"[BigVGAN DEBUG]   parametrizations[{attr!r}]={plist}", flush=True)
+                        for sub_name, sub_p in plist.named_parameters():
+                            print(f"[BigVGAN DEBUG]     {sub_name}.is_inference()={sub_p.is_inference()}", flush=True)
                 print(f"[BigVGAN DEBUG] conv_pre.weight.is_inference()={cp.weight.is_inference()}", flush=True)
-                if cp.bias is not None:
-                    print(f"[BigVGAN DEBUG] conv_pre.bias.is_inference()={cp.bias.is_inference()}", flush=True)
 
             pred_wav = vocoder(target_mel)                        # [B, 1, T_wav]
 

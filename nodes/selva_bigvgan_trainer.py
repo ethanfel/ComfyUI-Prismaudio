@@ -951,8 +951,6 @@ def _do_train(vocoder, mel_converter, clips,
         except Exception as e:
             print(f"[BigVGAN] Sample save failed ({label}): {e}", flush=True)
 
-    _save_sample("baseline")
-
     # Sanitize all inference tensors in the vocoder.
     # Three categories to handle (all loaded in ComfyUI's inference_mode):
     #
@@ -993,6 +991,9 @@ def _do_train(vocoder, mel_converter, clips,
     # ── Move vocoder to training device/dtype ────────────────────────────────
     # After cloning, vocoder may be on CPU (offloaded before training).
     vocoder.to(device, dtype)
+
+    # Baseline sample — after sanitization so vocoder has normal tensors.
+    _save_sample("baseline")
 
     # ── GAFilter injection ─────────────────────────────────────────────────
     # GAFilter params are fresh tensors — no inference flag to strip.

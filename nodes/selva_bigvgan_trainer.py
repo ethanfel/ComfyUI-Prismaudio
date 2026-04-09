@@ -529,7 +529,8 @@ def _pregenerate_lora_mels(model, data_dir, lora_adapter_path, device, dtype,
                 prompt = prompt_map.get(npz_path.name, data.get("prompt", default_prompt))
                 if isinstance(prompt, np.ndarray):
                     prompt = str(prompt)
-                text_clip = feature_utils.encode_text_clip([prompt]).to(device, dtype)
+                with torch.inference_mode():
+                    text_clip = feature_utils.encode_text_clip([prompt]).to(device, dtype)
 
                 # Load clean audio
                 try:

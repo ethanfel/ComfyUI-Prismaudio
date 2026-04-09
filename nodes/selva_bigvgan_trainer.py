@@ -487,10 +487,16 @@ def _pregenerate_lora_mels(model, data_dir, lora_adapter_path, device, dtype,
     fm = FlowMatching(min_sigma=0, inference_mode="euler", num_steps=num_steps)
     rng = torch.Generator(device=device).manual_seed(seed)
 
-    # Move VAE+vocoder to device for decode
+    # Move only the components we need to GPU for generation:
+    # - tod (VAE+vocoder) for decode
+    # - clip_model for encode_text_clip
     tod = feature_utils.tod
     tod_orig_dev = next(tod.parameters()).device
     tod.to(device)
+    clip_model = feature_utils.clip_model
+    if clip_model is not None:
+        clip_orig_dev = next(clip_model.parameters()).device
+        clip_model.to(device)
 
     pairs = []
     try:
@@ -565,6 +571,8 @@ def _pregenerate_lora_mels(model, data_dir, lora_adapter_path, device, dtype,
 
     finally:
         tod.to(tod_orig_dev)
+        if clip_model is not None:
+            clip_model.to(clip_orig_dev)
         del generator
         soft_empty_cache()
 
@@ -777,10 +785,10 @@ class SelvaBigvganTrainer:
         comfy.model_management.unload_all_models()
         soft_empty_cache()
 
-        if strategy == "offload_to_cpu":
-            feature_utils.to(device)
-            soft_empty_cache()
-
+        # Only move mel_converter to GPU — it's tiny and needed for training.
+        # The rest of feature_utils (CLIP, synchformer, T5, VAE) stays on CPU;
+        # _pregenerate_lora_mels handles its own device management for the parts
+        # it needs temporarily.
         mel_converter.to(device)
 
         pbar = comfy.utils.ProgressBar(steps)

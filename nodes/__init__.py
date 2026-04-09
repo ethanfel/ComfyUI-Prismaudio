@@ -30,7 +30,6 @@ _NODES = {
     "SelvaDatasetItemExtractor":   (".selva_dataset_pipeline", "SelvaDatasetItemExtractor",   "SelVA Dataset Item Extractor"),
     "SelvaDatasetSaver":           (".selva_dataset_pipeline", "SelvaDatasetSaver",           "SelVA Dataset Saver"),
     "SelvaHarmonicExciter":        (".selva_audio_postprocess", "SelvaHarmonicExciter",        "SelVA Harmonic Exciter"),
-    "SelvaFlashSR":                (".selva_audio_postprocess", "SelvaFlashSR",                "SelVA FlashSR"),
     "SelvaOutputNormalizer":       (".selva_audio_postprocess", "SelvaOutputNormalizer",       "SelVA Output Normalizer"),
 }
 

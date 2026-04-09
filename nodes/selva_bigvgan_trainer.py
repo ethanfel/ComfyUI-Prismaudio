@@ -757,6 +757,10 @@ def _do_train(vocoder, mel_converter, clips,
     optimizer = torch.optim.AdamW(trainable_params, lr=lr, betas=(0.8, 0.99))
     vocoder.train()
 
+    log_path = out_path.parent / f"{out_path.stem}_training_log.csv"
+    log_file = open(log_path, "w", buffering=1)   # line-buffered
+    log_file.write("step,total_loss,fm_loss,mel_loss,stft_loss,phase_loss,l2sp_loss\n")
+
     try:
         for step in range(steps):
             # Sample random batch — clips are CPU floats, move to device
@@ -842,6 +846,13 @@ def _do_train(vocoder, mel_converter, clips,
                 l2sp_str = f"  l2sp={l2sp_loss.item():.4e}" if lambda_l2sp > 0 else ""
                 print(f"[BigVGAN] {step+1}/{steps}  {loss_desc}"
                       f"  total={loss.item():.4f}{l2sp_str}", flush=True)
+                # CSV row
+                _fm    = fm_loss.item()    if mpd is not None else ""
+                _mel   = mel_loss.item()
+                _stft  = stft_loss.item()  if mpd is None else ""
+                _phase = phase_loss.item() if lambda_phase > 0.0 else ""
+                _l2sp  = l2sp_loss.item()
+                log_file.write(f"{step+1},{loss.item():.6f},{_fm},{_mel},{_stft},{_phase},{_l2sp}\n")
 
             if (step + 1) % save_every == 0 and (step + 1) < steps:
                 step_path = out_path.parent / f"{out_path.stem}_step{step+1}{out_path.suffix}"
@@ -856,6 +867,7 @@ def _do_train(vocoder, mel_converter, clips,
                 vocoder.train()
 
     finally:
+        log_file.close()
         vocoder.requires_grad_(False)
         vocoder.eval()
         if strategy == "offload_to_cpu":

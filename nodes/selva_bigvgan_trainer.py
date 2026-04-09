@@ -812,7 +812,9 @@ def _do_train(vocoder, mel_converter, clips,
             l2sp_loss = torch.zeros(1, device=device)
             if lambda_l2sp > 0.0 and ref_params:
                 for name, param in vocoder.named_parameters():
-                    if name in ref_params and param.requires_grad:
+                    # Skip GAFilter — newly initialized, not pretrained; L2-SP
+                    # anchoring to identity would fight against learning.
+                    if name in ref_params and param.requires_grad and "gafilter" not in name:
                         l2sp_loss = l2sp_loss + F.mse_loss(
                             param, ref_params[name], reduction="sum"
                         )

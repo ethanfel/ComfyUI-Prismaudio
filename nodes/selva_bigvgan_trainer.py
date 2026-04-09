@@ -275,7 +275,7 @@ def _do_train(vocoder, mel_converter, clips,
     random.seed(seed)
 
     # Reference segment for eval samples — always clip 0, start 0
-    ref_wav = clips[0][:segment_samples].to(device, dtype)   # [T]
+    ref_wav = clips[0].to(device, dtype)                      # full first clip [T]
     ref_mel = mel_converter(ref_wav.unsqueeze(0))             # [1, n_mels, T_mel]
 
     def _save_sample(label):

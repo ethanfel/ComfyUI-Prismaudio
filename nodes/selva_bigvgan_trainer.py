@@ -23,6 +23,24 @@ import folder_paths
 
 from .utils import SELVA_CATEGORY, get_device, soft_empty_cache
 
+def _save_wav(path, wav_tensor, sample_rate):
+    """Save [channels, samples] float32 tensor to .wav.
+
+    Tries torchaudio first; falls back to soundfile when the ffmpeg/torchcodec
+    backend is unavailable (same environment constraint as _load_wav).
+    """
+    try:
+        torchaudio.save(str(path), wav_tensor, sample_rate)
+        return
+    except Exception:
+        pass
+    import soundfile as sf
+    data = wav_tensor.numpy()
+    if data.ndim == 2:
+        data = data.T   # soundfile expects [samples, channels]
+    sf.write(str(path), data, sample_rate)
+
+
 def _load_wav(path):
     """Load audio file to [channels, samples] float32 tensor.
 
@@ -270,7 +288,7 @@ def _do_train(vocoder, mel_converter, clips,
                     wav = wav.unsqueeze(1)
                 wav = wav.float().cpu().clamp(-1, 1)
             wav_path = out_path.parent / f"{out_path.stem}_{label}.wav"
-            torchaudio.save(str(wav_path), wav.squeeze(0), sample_rate)
+            _save_wav(wav_path, wav.squeeze(0), sample_rate)
             print(f"[BigVGAN] Sample saved: {wav_path}", flush=True)
         except Exception as e:
             print(f"[BigVGAN] Sample save failed ({label}): {e}", flush=True)

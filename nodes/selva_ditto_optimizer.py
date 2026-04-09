@@ -125,9 +125,9 @@ class SelvaDittoOptimizer:
                                "each step requires ~2 DiT forward passes.",
                 }),
                 "opt_lr": ("FLOAT", {
-                    "default": 0.1, "min": 0.001, "max": 2.0, "step": 0.01,
+                    "default": 0.02, "min": 0.001, "max": 2.0, "step": 0.001,
                     "tooltip": "Adam learning rate for x_0 optimization. "
-                               "0.1 is the DITTO paper default.",
+                               "0.02–0.05 is recommended; 0.1 (paper default) causes oscillation.",
                 }),
                 "n_ode_steps": ("INT", {
                     "default": 10, "min": 5, "max": 50,

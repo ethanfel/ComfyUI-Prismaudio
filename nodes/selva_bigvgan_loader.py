@@ -61,12 +61,16 @@ class SelvaBigvganLoader:
         else:
             raise ValueError(f"[BigVGAN] Unknown mode: {mode}")
 
+        # Remember device before injecting new modules (which default to CPU)
+        target_device = next(vocoder.parameters()).device
+
         if ckpt.get("has_gafilter", False):
             kernel_size = ckpt.get("gafilter_kernel_size", 9)
             n_gaf = inject_gafilters(vocoder, kernel_size)
             print(f"[BigVGAN] GAFilter injected: {n_gaf} filters  kernel={kernel_size}", flush=True)
 
         vocoder.load_state_dict(ckpt["generator"])
+        vocoder.to(target_device)
         vocoder.eval()
 
         print(f"[BigVGAN] Loaded fine-tuned vocoder from: {p}", flush=True)

@@ -149,7 +149,7 @@ class SelvaModelLoader:
             enable_conditions=True,
             mode=mode,
             bigvgan_vocoder_ckpt=bigvgan_path,
-            need_vae_encoder=False,
+            need_vae_encoder=True,
         ).to(device, dtype).eval()
 
         if strategy == "offload_to_cpu":

@@ -191,7 +191,7 @@ class SelvaDittoOptimizer:
             raise FileNotFoundError(f"[DITTO] No audio files in reference_dir: {ref_dir}")
 
         print(f"[DITTO] Loading {len(ref_files)} reference clips...", flush=True)
-        mel_converter.to(device)
+        mel_converter.to(device, torch.float32)  # cuFFT requires float32
 
         ref_mels = []
         with torch.no_grad():
@@ -202,7 +202,7 @@ class SelvaDittoOptimizer:
                         wav = wav.mean(0, keepdim=True)
                     if sr != sample_rate:
                         wav = torchaudio.functional.resample(wav, sr, sample_rate)
-                    wav = wav.squeeze(0).to(device, dtype)
+                    wav = wav.squeeze(0).to(device, torch.float32)  # cuFFT requires float32
                     mel = mel_converter(wav.unsqueeze(0))  # [1, n_mels, T]
                     ref_mels.append(mel)
                 except Exception as e:

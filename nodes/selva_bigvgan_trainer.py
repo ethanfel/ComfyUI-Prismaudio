@@ -404,11 +404,6 @@ class SelvaBigvganTrainer:
                 f"[BigVGAN] No usable clips found (need audio >= {segment_seconds}s)"
             )
 
-        trainable_count = sum(
-            1 for n, _ in vocoder.named_parameters() if "alpha" in n
-        ) if train_mode == "snake_alpha_only" else sum(
-            1 for _ in vocoder.parameters()
-        )
         print(f"[BigVGAN] {len(clips)} clips ready  mode={train_mode}  "
               f"segment={segment_seconds}s  steps={steps}  lr={lr}  "
               f"batch={batch_size}  lambda_l2sp={lambda_l2sp}\n", flush=True)

@@ -119,7 +119,9 @@ def _eval_sample(generator, feature_utils_orig, dataset, seq_cfg, device, dtype,
 
         with torch.no_grad():
             x1_pred   = eval_fm.to_data(velocity_fn, x0)
-            x1_unnorm = generator.unnormalize(x1_pred)
+            # .clone() strips inference-mode flag from x1_pred (computed from
+            # inference-mode weights) so unnormalize's in-place ops don't fail.
+            x1_unnorm = generator.unnormalize(x1_pred.clone())
 
             # Only move the VAE+vocoder (tod) to GPU — avoids moving the
             # entire FeaturesUtils (CLIP, T5, Synchformer) which wastes VRAM

@@ -13,6 +13,7 @@ import torch
 import folder_paths
 
 from .utils import SELVA_CATEGORY
+from .selva_bigvgan_trainer import inject_gafilters
 
 
 class SelvaBigvganLoader:
@@ -59,6 +60,11 @@ class SelvaBigvganLoader:
             vocoder = model["feature_utils"].tod.vocoder           # BigVGANv2 directly
         else:
             raise ValueError(f"[BigVGAN] Unknown mode: {mode}")
+
+        if ckpt.get("has_gafilter", False):
+            kernel_size = ckpt.get("gafilter_kernel_size", 9)
+            n_gaf = inject_gafilters(vocoder, kernel_size)
+            print(f"[BigVGAN] GAFilter injected: {n_gaf} filters  kernel={kernel_size}", flush=True)
 
         vocoder.load_state_dict(ckpt["generator"])
         vocoder.eval()

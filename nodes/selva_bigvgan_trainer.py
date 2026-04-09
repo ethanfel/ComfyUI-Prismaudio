@@ -836,6 +836,8 @@ class SelvaBigvganTrainer:
                     if clip_model is not None:
                         clip_model.to("cpu")
                     soft_empty_cache()
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
                 print(f"[BigVGAN] Pre-encoded {len(text_clip_cache)} text CLIP embeddings", flush=True)
 
         pbar = comfy.utils.ProgressBar(steps)
@@ -875,6 +877,10 @@ class SelvaBigvganTrainer:
                             "could be generated. Check that data_dir contains .npz "
                             "files with matching audio files."
                         )
+                    # Force-release the CUDA memory pool from pre-generation.
+                    # soft_empty_cache may not call torch.cuda.empty_cache().
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
 
                 _result[0] = _do_train(
                     vocoder, mel_converter, clips,

@@ -1,0 +1,65 @@
+{
+  "name": "bigvgan_overnight",
+  "description": "BigVGAN vocoder quality sweep. Axes: snake_alpha steps, all_params short run, GAFilter on/off, discriminator FM, phase loss weight. All use LoRA-distorted mels as input so vocoder learns to fix LoRA artifacts.",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/bigvgan_overnight",
+  "base": {
+    "train_mode": "snake_alpha_only",
+    "steps": 3000,
+    "lr": 1e-4,
+    "batch_size": 8,
+    "segment_seconds": 0.5,
+    "lambda_l2sp": 1e-3,
+    "use_gafilter": true,
+    "gafilter_kernel_size": 9,
+    "lambda_phase": 1.0,
+    "save_every": 1000,
+    "seed": 42,
+    "lora_adapter": "/media/unraid/davinci/Selva/BJ/experiment/pissa_sweep/standard_baseline/adapter_final.pt"
+  },
+  "experiments": [
+    {
+      "id": "snake_3k_baseline",
+      "description": "Snake alpha + GAFilter baseline. 3000 steps, same as first successful run but longer."
+    },
+    {
+      "id": "snake_5k",
+      "description": "Snake alpha + GAFilter, 5000 steps. Test if longer training improves further.",
+      "steps": 5000
+    },
+    {
+      "id": "snake_no_gafilter",
+      "description": "Snake alpha only, no GAFilter. Isolate GAFilter contribution.",
+      "use_gafilter": false
+    },
+    {
+      "id": "snake_no_phase",
+      "description": "Snake alpha + GAFilter, no phase loss. Isolate phase loss contribution.",
+      "lambda_phase": 0.0
+    },
+    {
+      "id": "snake_phase_2",
+      "description": "Snake alpha + GAFilter, phase weight 2.0. Stronger phase penalty.",
+      "lambda_phase": 2.0
+    },
+    {
+      "id": "snake_lr5e-5",
+      "description": "Snake alpha + GAFilter, lower LR 5e-5. Test if slower converges better.",
+      "lr": 5e-5,
+      "steps": 5000
+    },
+    {
+      "id": "snake_disc_fm",
+      "description": "Snake alpha + GAFilter + discriminator feature matching. Perceptual loss should directly penalize harmonic smearing.",
+      "discriminator_path": "/media/unraid/davinci/Selva/BJ/experiment/bigvgan_discriminator_optimizer.pt"
+    },
+    {
+      "id": "all_2k_l2sp1e-2",
+      "description": "All params, 2000 steps, strong L2-SP (1e-2). Test if full param tuning with heavy anchor beats snake-only.",
+      "train_mode": "all_params",
+      "steps": 2000,
+      "lr": 1e-5,
+      "lambda_l2sp": 1e-2
+    }
+  ]
+}

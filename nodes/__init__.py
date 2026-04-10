@@ -21,6 +21,7 @@ _NODES = {
     "SelvaActivationSteeringLoader":         (".selva_activation_steering_loader",         "SelvaActivationSteeringLoader",         "SelVA Activation Steering Loader"),
     "SelvaBigvganTrainer":                   (".selva_bigvgan_trainer",                    "SelvaBigvganTrainer",                   "SelVA BigVGAN Trainer"),
     "SelvaBigvganLoader":                    (".selva_bigvgan_loader",                     "SelvaBigvganLoader",                    "SelVA BigVGAN Loader"),
+    "SelvaBigvganScheduler":                 (".selva_bigvgan_scheduler",                  "SelvaBigvganScheduler",                 "SelVA BigVGAN Scheduler"),
     "SelvaDittoOptimizer":                   (".selva_ditto_optimizer",                    "SelvaDittoOptimizer",                   "SelVA DITTO Optimizer"),
     "SelvaDatasetLoader":          (".selva_dataset_pipeline", "SelvaDatasetLoader",          "SelVA Dataset Loader"),
     "SelvaDatasetResampler":       (".selva_dataset_pipeline", "SelvaDatasetResampler",       "SelVA Dataset Resampler"),

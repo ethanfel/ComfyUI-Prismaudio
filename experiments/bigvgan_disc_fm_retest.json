@@ -1,0 +1,31 @@
+{
+  "name": "bigvgan_disc_fm_retest",
+  "description": "Retest discriminator feature matching after bfloat16 dtype fix. Uses optimal config from overnight sweep (snake_alpha, GAFilter, lr=1e-4, phase=1.0, L2-SP=1e-3, 5000 steps).",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/bigvgan_disc_fm_retest",
+  "base": {
+    "train_mode": "snake_alpha_only",
+    "steps": 5000,
+    "lr": 1e-4,
+    "batch_size": 8,
+    "segment_seconds": 0.5,
+    "lambda_l2sp": 1e-3,
+    "use_gafilter": true,
+    "gafilter_kernel_size": 9,
+    "lambda_phase": 1.0,
+    "save_every": 1000,
+    "seed": 42,
+    "lora_adapter": "/media/unraid/davinci/Selva/BJ/experiment/pissa_sweep/standard_baseline/adapter_final.pt"
+  },
+  "experiments": [
+    {
+      "id": "snake_5k_control",
+      "description": "Control: best config from overnight sweep without discriminator. Baseline for A/B comparison."
+    },
+    {
+      "id": "disc_fm_5k",
+      "description": "Discriminator feature matching at 5k steps. Tests if perceptual FM loss improves over mel+phase alone.",
+      "discriminator_path": "/media/unraid/davinci/Selva/BJ/experiment/bigvgan_discriminator_optimizer.pt"
+    }
+  ]
+}

@@ -81,6 +81,8 @@ _PARAM_DEFAULTS = {
     "lr_schedule":         "constant",
     "init_mode":           "pissa",
     "use_rslora":          True,
+    "latent_mixup_alpha":  0.0,
+    "latent_noise_sigma":  0.0,
 }
 
 # Palette for comparison chart: one color per experiment (cycles if > 8)

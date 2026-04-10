@@ -1,0 +1,64 @@
+{
+  "name": "lora_optimized_dataset",
+  "description": "LoRA training on optimized dataset (134 clips: resampled 44.1kHz, LUFS-normalized, spectral matched, HF smoothed, gain-augmented). Tests latent augmentation and schedule variants on top of known-best config (PiSSA, rank=128, lr=3e-4).",
+  "data_dir": "/media/unraid/davinci/Selva/BJ/features_v2_improved/",
+  "output_root": "/media/unraid/davinci/Selva/BJ/experiment/lora_optimized_dataset",
+  "base": {
+    "rank": 128,
+    "lr": 3e-4,
+    "steps": 5000,
+    "batch_size": 4,
+    "warmup_steps": 100,
+    "save_every": 1000,
+    "seed": 42,
+    "init_mode": "pissa",
+    "use_rslora": true,
+    "target": "attn.qkv",
+    "timestep_mode": "uniform",
+    "lr_schedule": "constant"
+  },
+  "experiments": [
+    {
+      "id": "baseline",
+      "description": "Control: known-best config (PiSSA r128 lr=3e-4) on the optimized dataset. No latent augmentation."
+    },
+    {
+      "id": "latent_mixup",
+      "description": "Latent mixup alpha=0.4 (MusicLDM). Tests if mixing training latents reduces memorization on 134 clips.",
+      "latent_mixup_alpha": 0.4
+    },
+    {
+      "id": "latent_noise",
+      "description": "Latent noise sigma=0.02. Mild Gaussian noise on training latents for regularization.",
+      "latent_noise_sigma": 0.02
+    },
+    {
+      "id": "mixup_and_noise",
+      "description": "Both latent mixup (0.4) and noise (0.02). Combined regularization.",
+      "latent_mixup_alpha": 0.4,
+      "latent_noise_sigma": 0.02
+    },
+    {
+      "id": "cosine_schedule",
+      "description": "Cosine LR decay. lr=3e-4 was stable with constant, but cosine may extract more from 5k steps.",
+      "lr_schedule": "cosine"
+    },
+    {
+      "id": "cosine_mixup",
+      "description": "Cosine LR + latent mixup. Best regularization combo candidate.",
+      "lr_schedule": "cosine",
+      "latent_mixup_alpha": 0.4
+    },
+    {
+      "id": "logit_normal",
+      "description": "Logit-normal timestep sampling (sigma=1.0). Concentrates training near t=0.5 where flow matching is hardest.",
+      "timestep_mode": "logit_normal"
+    },
+    {
+      "id": "curriculum_mixup",
+      "description": "Curriculum timesteps (logit_normal first 60%, then uniform) + latent mixup. Full regularization stack.",
+      "timestep_mode": "curriculum",
+      "latent_mixup_alpha": 0.4
+    }
+  ]
+}

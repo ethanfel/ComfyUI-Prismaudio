@@ -1,14 +1,14 @@
 """SelVA DITTO Optimizer.
 
 Inference-time noise optimization: optimizes the initial noise latent x_0
-using a style loss against BJ reference clips, backpropagating through the
+using a style loss against target style reference clips, backpropagating through the
 ODE solver. All model weights remain frozen — only x_0 changes.
 
 Based on DITTO: Diffusion Inference-Time T-Optimization (arXiv:2401.12179,
 ICML 2024 Oral). Adapted for SelVA's flow-matching Euler ODE.
 
 Style loss: mel-spectrogram statistics matching (mean spectrum + Gram matrix)
-against BJ reference clips. Runs entirely before the vocoder — optimization
+against target style reference clips. Runs entirely before the vocoder — optimization
 only requires the DiT + VAE decoder, not BigVGAN.
 
 Memory strategy: gradient checkpointing at each ODE step — stores O(1 DiT
@@ -97,7 +97,7 @@ class SelvaDittoOptimizer:
     """DITTO inference-time noise optimization.
 
     Freezes all model weights and optimizes only the initial noise latent x_0
-    to make the generated audio sound like the BJ reference clips.
+    to make the generated audio sound like the target style reference clips.
     No training data or gradient updates to the model — per-video per-run.
     """
 
@@ -116,7 +116,7 @@ class SelvaDittoOptimizer:
                 }),
                 "reference_dir": ("STRING", {
                     "default": "",
-                    "tooltip": "Directory with BJ reference audio files (.wav/.flac/.mp3). "
+                    "tooltip": "Directory with target style reference audio files (.wav/.flac/.mp3). "
                                "Reference mel statistics are precomputed from these once.",
                 }),
                 "n_opt_steps": ("INT", {
@@ -143,8 +143,8 @@ class SelvaDittoOptimizer:
                 }),
                 "style_weight": ("FLOAT", {
                     "default": 0.1, "min": 0.0, "max": 10.0, "step": 0.05,
-                    "tooltip": "Weight of the BJ style loss. High values push harder toward "
-                               "BJ style but add noise. Start at 0.1 and increase slowly.",
+                    "tooltip": "Weight of the target style style loss. High values push harder toward "
+                               "target style style but add noise. Start at 0.1 and increase slowly.",
                 }),
                 "gram_weight": ("FLOAT", {
                     "default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
@@ -176,12 +176,12 @@ class SelvaDittoOptimizer:
 
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
-    OUTPUT_TOOLTIPS = ("DITTO-optimized audio — x_0 steered toward BJ style.",)
+    OUTPUT_TOOLTIPS = ("DITTO-optimized audio — x_0 steered toward target style style.",)
     FUNCTION = "optimize"
     CATEGORY = SELVA_CATEGORY
     DESCRIPTION = (
         "DITTO inference-time noise optimization (arXiv:2401.12179). "
-        "Optimizes the initial noise latent x_0 to match BJ reference clips "
+        "Optimizes the initial noise latent x_0 to match target style reference clips "
         "via mel statistics style loss, backpropagating through the ODE. "
         "All model weights frozen — zero quality degradation risk."
     )

@@ -1,15 +1,15 @@
 """SelVA Activation Steering Extractor.
 
 Computes per-block steering vectors by running the frozen generator on the
-training dataset and recording how BJ's conditioning shifts the DiT hidden
+training dataset and recording how target style's conditioning shifts the DiT hidden
 states vs. empty/unconditional conditioning.
 
 For each block i:
-    steering[i] = mean(latent_hidden | BJ conditions)
+    steering[i] = mean(latent_hidden | target style conditions)
                 - mean(latent_hidden | empty conditions)
 
 The resulting vectors are injected at inference time (via SelVA Sampler's
-steering_strength input) to nudge the denoising trajectory toward BJ's
+steering_strength input) to nudge the denoising trajectory toward target style's
 activation patterns without modifying any model weights.
 """
 
@@ -58,7 +58,7 @@ class SelvaActivationSteeringExtractor:
     """Computes activation steering vectors from a training dataset.
 
     Runs the frozen generator on N clips at random timesteps with both
-    BJ-conditioned and empty-conditioned inputs, then saves the mean
+    target style-conditioned and empty-conditioned inputs, then saves the mean
     difference per DiT block to a .pt file.
     """
 
@@ -69,7 +69,7 @@ class SelvaActivationSteeringExtractor:
     RETURN_NAMES  = ("steering_path",)
     OUTPUT_TOOLTIPS = ("Path to saved steering_vectors.pt — load with SelVA Activation Steering Loader.",)
     DESCRIPTION = (
-        "Computes per-block activation steering vectors: mean(BJ activations) − "
+        "Computes per-block activation steering vectors: mean(target style activations) − "
         "mean(empty activations) at each DiT block. Load the result with "
         "SelVA Activation Steering Loader and connect to the Sampler."
     )
@@ -124,7 +124,7 @@ class SelvaActivationSteeringExtractor:
         indices = random.choices(range(len(dataset)), k=n_samples)
 
         n_blocks     = len(generator.joint_blocks) + len(generator.fused_blocks)
-        bj_sums      = [None] * n_blocks
+        style_sums      = [None] * n_blocks
         empty_sums   = [None] * n_blocks
         counts       = [0] * n_blocks
 
@@ -157,15 +157,15 @@ class SelvaActivationSteeringExtractor:
                 device=device, dtype=dtype,
             )
 
-            bj_acts    = _collect_activations(generator, conditions,       latent, t_tensor)
+            style_acts    = _collect_activations(generator, conditions,       latent, t_tensor)
             empty_acts = _collect_activations(generator, empty_conditions, latent, t_tensor)
 
-            for i, (bj, em) in enumerate(zip(bj_acts, empty_acts)):
-                if bj_sums[i] is None:
-                    bj_sums[i]    = bj.clone()
+            for i, (st, em) in enumerate(zip(style_acts, empty_acts)):
+                if style_sums[i] is None:
+                    style_sums[i]    = st.clone()
                     empty_sums[i] = em.clone()
                 else:
-                    bj_sums[i]    += bj
+                    style_sums[i]    += st
                     empty_sums[i] += em
                 counts[i] += 1
 
@@ -173,10 +173,10 @@ class SelvaActivationSteeringExtractor:
             if (sample_i + 1) % 4 == 0 or sample_i == n_samples - 1:
                 print(f"[Steering] Processed {sample_i + 1}/{n_samples} clips", flush=True)
 
-        # Steering vector per block: mean(BJ) - mean(empty)
+        # Steering vector per block: mean(target style) - mean(empty)
         steering_vectors = []
         for i in range(n_blocks):
-            vec = (bj_sums[i] - empty_sums[i]) / counts[i]   # [hidden]
+            vec = (style_sums[i] - empty_sums[i]) / counts[i]   # [hidden]
             steering_vectors.append(vec)
 
             norm = vec.norm().item()

@@ -593,7 +593,7 @@ class SelvaBigvganTrainer:
     RETURN_NAMES  = ("checkpoint_path",)
     OUTPUT_TOOLTIPS = ("Path to saved vocoder checkpoint — load with SelVA BigVGAN Loader.",)
     DESCRIPTION = (
-        "Fine-tunes the BigVGAN vocoder (mel→waveform) on BJ audio clips. "
+        "Fine-tunes the BigVGAN vocoder (mel→waveform) on target audio clips. "
         "Default mode (snake_alpha_only) tunes only the ~5K Snake activation α "
         "parameters — cannot cause harmonic smearing. Add a discriminator path "
         "for perceptual feature matching loss. DiT and VAE stay frozen."
@@ -606,7 +606,7 @@ class SelvaBigvganTrainer:
                 "model": ("SELVA_MODEL",),
                 "data_dir": ("STRING", {
                     "default": "",
-                    "tooltip": "Directory with BJ audio files (.wav/.flac/.mp3). Searched recursively.",
+                    "tooltip": "Directory with target audio files (.wav/.flac/.mp3). Searched recursively.",
                 }),
                 "output_path": ("STRING", {
                     "default": "bigvgan_bj.pt",

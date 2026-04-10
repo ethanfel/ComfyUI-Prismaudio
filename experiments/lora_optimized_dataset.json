@@ -7,7 +7,7 @@
     "rank": 128,
     "lr": 3e-4,
     "steps": 5000,
-    "batch_size": 4,
+    "batch_size": 16,
     "warmup_steps": 100,
     "save_every": 1000,
     "seed": 42,
